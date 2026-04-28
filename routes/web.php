@@ -1,15 +1,17 @@
 <?php
-
-use App\Http\Controllers\ParentAuthController;
-use App\Http\Controllers\ParentDashboardController;
-use App\Http\Controllers\ParentEleveController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+// Route::get('/', function () {
+//     //dd($_SERVER['REMOTE_ADDR']);
+//     return view('welcome');
+//     //return redirect('/si');
+// })->name('home');
+
 
 Route::get('/', function () {
-    //dd($_SERVER['REMOTE_ADDR']);
-    // return view('welcome');
-    return redirect('/si');
-})->name('home');
+    return Inertia::render('Dashboard'); // 'Dashboard' doit correspondre au nom de votre fichier dans resources/js/Pages/
+});
 
 // Route::get('/parents/login', [ParentAuthController::class, 'create'])
 //     ->name('parents.login')

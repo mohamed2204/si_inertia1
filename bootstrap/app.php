@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Force l'injection du Middleware de la Debugbar dans le groupe Web
         $middleware->web(append: [
             \Barryvdh\Debugbar\Middleware\InjectDebugbar::class,
+            HandleInertiaRequests::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
