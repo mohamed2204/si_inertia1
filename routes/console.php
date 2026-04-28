@@ -3,6 +3,7 @@
 use App\Jobs\CheckIncomingEmailsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -18,5 +19,5 @@ Artisan::command('inspire', function () {
 
 Schedule::job(new CheckIncomingEmailsJob)
     ->everyTwoMinutes()
-    ->before(fn () => Log::info('⏰ Scheduler déclenché'))
-    ->after(fn () => Log::info('✅ Scheduler terminé'));
+    ->before(fn() => Log::info('⏰ Scheduler déclenché'))
+    ->after(fn() => Log::info('✅ Scheduler terminé'));

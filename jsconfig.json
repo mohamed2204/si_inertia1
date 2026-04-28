@@ -3,6 +3,7 @@
     "target": "ES6",
     "module": "commonjs",
     "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["resources/js/*"]
