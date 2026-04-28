@@ -17,6 +17,14 @@ export default defineConfig({
         // tailwindcss(),
         react(),
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                quietDeps: true, // Ignore les alertes venant des dépendances
+                silenceDeprecations: ['import'], // Silence spécifiquement les alertes @import
+            },
+        },
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'resources/js'), // <--- Configurez l'alias ici

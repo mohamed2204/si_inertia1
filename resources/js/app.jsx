@@ -1,9 +1,11 @@
 import './bootstrap';
 import '../css/app.css';
 
+// resources/js/app.jsx
+import { PrimeReactProvider } from 'primereact/api';
 
 // 1. Thème de base PrimeReact (Lara, Saga, etc.)
-import "primereact/resources/themes/lara-light-indigo/theme.css"; 
+import "primereact/resources/themes/lara-light-indigo/theme.css";
 
 // 2. Coeur de PrimeReact et Icônes
 import "primereact/resources/primereact.min.css";
@@ -13,7 +15,7 @@ import "primeicons/primeicons.css";
 import "primeflex/primeflex.css";
 
 // 4. Styles spécifiques à Sakai (que vous avez copiés)
-import "../css/sakai/layout/layout.scss"; 
+import "../css/sakai/layout/layout.scss";
 import "../css/sakai/demo/Demos.scss"; // Optionnel, pour les exemples de composants
 
 import { createRoot } from 'react-dom/client';
@@ -31,7 +33,10 @@ createInertiaApp({
     title: (title) => `${title} - My App`,
     resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
     setup({ el, App, props }) {
-        const root = createRoot(el);
-        root.render(<App {...props} />);
+        createRoot(el).render(
+            <PrimeReactProvider>
+                <App {...props} />
+            </PrimeReactProvider>
+        );
     },
 });

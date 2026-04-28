@@ -4,7 +4,7 @@ import React, { useState, createContext } from 'react';
 export const LayoutContext = createContext({});
 
 export const LayoutProvider = ({ children }) => {
-    const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>({
+   const [layoutConfig, setLayoutConfig] = useState({
         ripple: false,
         inputStyle: 'outlined',
         menuMode: 'static',
@@ -13,7 +13,8 @@ export const LayoutProvider = ({ children }) => {
         scale: 14
     });
 
-    const [layoutState, setLayoutState] = useState<LayoutState>({
+    const [layoutState, setLayoutState] = useState({
+
         staticMenuDesktopInactive: false,
         overlayMenuActive: false,
         profileSidebarVisible: false,

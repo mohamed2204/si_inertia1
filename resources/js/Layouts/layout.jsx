@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // 'use client';
-
+// 1. On importe le Provider (vérifiez bien le chemin)
+import { LayoutProvider } from './context/layoutcontext';
 // import { useRouter } from 'next/navigation';
 import { useEventListener, useMountEffect, useUnmountEffect } from 'primereact/hooks';
 import React, { useContext, useEffect, useRef } from 'react';
@@ -10,7 +11,7 @@ import AppSidebar from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import AppConfig from './AppConfig';
 import { LayoutContext } from './context/layoutcontext';
-import { PrimeReactContext } from 'primereact/api';
+//import { PrimeReactContext } from 'primereact/api';
 
 import { usePage } from '@inertiajs/react';
 // import { usePathname, useSearchParams } from 'next/navigation';
@@ -19,7 +20,7 @@ import { usePage } from '@inertiajs/react';
 //const Layout = ({ children }: ChildContainerProps) => {
 const Layout = ({ children }) => {
     const { layoutConfig, layoutState, setLayoutState } = useContext(LayoutContext);
-    const { setRipple } = useContext(PrimeReactContext);
+    //const { setRipple } = useContext(PrimeReactContext);
     const topbarRef = useRef(null);
     const sidebarRef = useRef(null);
     const [bindMenuOutsideClickListener, unbindMenuOutsideClickListener] = useEventListener({
@@ -47,8 +48,12 @@ const Layout = ({ children }) => {
     const searchParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
 
     useEffect(() => {
-        hideMenu();
-        hideProfileMenu();
+        if (layoutState.overlayMenuActive || layoutState.staticMenuMobileActive) {
+            hideMenu();
+            hideProfileMenu();
+        }
+        //hideMenu();
+        //hideProfileMenu();
     }, [pathname, searchParams]);
 
     const [bindProfileMenuOutsideClickListener, unbindProfileMenuOutsideClickListener] = useEventListener({
@@ -149,4 +154,15 @@ const Layout = ({ children }) => {
     );
 };
 
-export default Layout;
+// 2. On crée un Wrapper qui fournit le contexte au Layout
+const LayoutWrapper = (props) => {
+    return (
+        <LayoutProvider>
+            <Layout {...props} />
+        </LayoutProvider>
+    );
+};
+
+//export default Layout;
+// 3. On exporte le Wrapper à la place du Layout seul
+export default LayoutWrapper;
