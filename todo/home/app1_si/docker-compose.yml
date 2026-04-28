@@ -1,0 +1,67 @@
+# app1/docker-compose.yml
+services:
+  php_app1_si:
+    build:
+      context: ./php
+      args:
+        - USER_ID=1000 # Votre ID utilisateur Linux
+    container_name: php-app1-si
+    volumes:
+      - ./src:/var/www/html # Votre code source Laravel
+    networks:
+      - proxy-nw
+      - internal-app1-si
+
+  db_app1_si:
+    image: mariadb:10.11 # ou mysql
+    container_name: db-app1-si # <-- C'est ce nom qu'il faudra taper dans Adminer
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: si_v1
+      MYSQL_USER: si_v1
+      MYSQL_PASSWORD: si_v1
+    volumes:
+      - /DATA/AppData/mysql-data_si:/var/lib/mysql
+    networks:
+      #- web-gateway # Indispensable pour que l'Adminer global le voie
+      - proxy-nw          # Pour NPM
+      - internal-app1-si   # Pour la DB
+
+networks:
+  proxy-nw:
+    external: true
+  internal-app1-si: # Réseau privé pour que PHP parle à sa DB sans voir la DB de l'App 2
+    driver: bridge
+
+volumes:
+  db_data1_si:
+
+## school-app/docker-compose.yml
+#services:
+#  php-app:
+#    build: ./php
+#    container_name: school-php
+#    volumes:
+#      - ./src:/var/www/html
+#    networks:
+#      - proxy-nw          # Pour NPM
+#      - school-internal   # Pour la DB
+#
+#  db-app:
+#    image: mariadb:10.11
+#    container_name: school-db
+#    environment:
+#      MYSQL_ROOT_PASSWORD: root_password
+#      MYSQL_DATABASE: school_db
+#    volumes:
+#      - ./mysql-data:/var/lib/mysql
+#    networks:
+#      - school-internal
+#      - proxy-nw          # Optionnel : seulement si Adminer doit la voir
+#
+#networks:
+#  proxy-nw:
+#    external: true        # On se branche sur le réseau existant de l'infra
+#  school-internal:
+#    driver: bridge

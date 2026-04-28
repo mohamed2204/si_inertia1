@@ -1,0 +1,104 @@
+erDiagram
+
+  ELEVES {
+    varchar cni
+    timestamp created_at
+    date date_naissance
+    bigint grade_id UK
+    bigint id PK
+    varchar matricule
+    varchar nationalite
+    varchar nom
+    varchar nom_arabe
+    varchar photo
+    varchar prenom
+    varchar prenom_arabe
+    bigint promotion_id
+    varchar sexe
+    bigint specialite_id
+    timestamp updated_at
+  }
+
+  GRADES {
+    timestamp created_at
+    bigint id PK
+    varchar nom UK
+    timestamp updated_at
+  }
+
+  MATIERES {
+    timestamp created_at
+    bigint id PK
+    varchar nom UK
+    timestamp updated_at
+  }
+
+  NOTES {
+    timestamp created_at
+    bigint eleve_id
+    bigint id PK
+    bigint programme_matiere_id
+    timestamp updated_at
+    decimal valeur
+  }
+
+  PHASES {
+    timestamp created_at
+    bigint id PK
+    varchar nom
+    tinyint ordre UK
+    timestamp updated_at
+  }
+
+  PROGRAMME_MATIERES {
+    tinyint coefficient
+    bigint id PK
+    bigint matiere_id
+    bigint phase_id
+    bigint specialite_id
+  }
+
+  PROMOTION_SPECIALITE_PHASES {
+    date date_debut
+    date date_fin
+    bigint id PK
+    tinyint is_active
+    bigint phase_id
+    bigint promotion_id
+    bigint specialite_id
+  }
+
+  PROMOTION_SPECIALITES {
+    bigint promotion_id PK
+    bigint specialite_id PK
+  }
+
+  PROMOTIONS {
+    timestamp created_at
+    date date_debut
+    date date_fin
+    bigint id PK
+    varchar nom UK
+    timestamp updated_at
+  }
+
+  SPECIALITES {
+    timestamp created_at
+    bigint id PK
+    varchar nom UK
+    timestamp updated_at
+  }
+
+  GRADES ||--o{ ELEVES : "FK"
+  PROMOTIONS ||--o{ ELEVES : "FK"
+  SPECIALITES ||--o{ ELEVES : "FK"
+  ELEVES ||--o{ NOTES : "FK"
+  PROGRAMME_MATIERES ||--o{ NOTES : "FK"
+  MATIERES ||--o{ PROGRAMME_MATIERES : "FK"
+  PHASES ||--o{ PROGRAMME_MATIERES : "FK"
+  SPECIALITES ||--o{ PROGRAMME_MATIERES : "FK"
+  PHASES ||--o{ PROMOTION_SPECIALITE_PHASES : "FK"
+  PROMOTIONS ||--o{ PROMOTION_SPECIALITE_PHASES : "FK"
+  SPECIALITES ||--o{ PROMOTION_SPECIALITE_PHASES : "FK"
+  PROMOTIONS ||--o{ PROMOTION_SPECIALITES : "FK"
+  SPECIALITES ||--o{ PROMOTION_SPECIALITES : "FK"

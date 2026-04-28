@@ -1,0 +1,25 @@
+# app1/docker-compose.yml
+services:
+  php_app1_school:
+    build: /home/mohamed/docker/app1_si/php
+    container_name: php-app1-school
+    networks:
+      - web-gateway
+      - internal-app1-school
+
+  db_app1_school:
+    image: postgres:15 # ou mysql
+    container_name: db-app1-school
+    volumes:
+      - db_data1_school:/var/lib/postgresql/data
+    networks:
+      - internal-app1-school
+
+networks:
+  web-gateway:
+    external: true
+  internal-app1-school: # Réseau privé pour que PHP parle à sa DB sans voir la DB de l'App 2
+    driver: bridge
+
+volumes:
+  db_data1_school:

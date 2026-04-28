@@ -1,0 +1,59 @@
+# app1/docker-compose.yml
+services:
+  # --- LE SERVEUR WEB (L'entrée de votre application) ---
+  web-server-si:
+    image: nginx:alpine
+    container_name: nginx-app1-si
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+      # On lie le fichier de config qu'on va créer juste après
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - proxy-nw # Pour que NPM puisse lui parler
+      - internal-app1-si # Pour qu'il puisse parler au PHP
+    depends_on:
+      - php_app1_si
+
+  # --- LE MOTEUR PHP (Votre TALL Stack) ---
+  php_app1_si:
+    build:
+      context: ./php
+      args:
+        - USER_ID=1000 # Votre ID utilisateur Linux
+    container_name: php-app1-si
+    volumes:
+      - ./src:/var/www/html # Votre code source Laravel
+    networks:
+      - proxy-nw
+      - internal-app1-si
+
+  db_app1_si:
+    image: mariadb:10.11 # ou mysql
+    container_name: db-app1-si # <-- C'est ce nom qu'il faudra taper dans Adminer
+    restart: unless-stopped
+    environment:
+      # On utilise la syntaxe ${VARIABLE}
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: si_v1
+      MYSQL_USER: si_v1
+      MYSQL_PASSWORD: si_v1
+    volumes:
+      - /DATA/AppData/mysql-data_si:/var/lib/mysql
+    networks:
+      #- web-gateway # Indispensable pour que l'Adminer global le voie
+      - proxy-nw # On utilise directement le nom réel
+      - internal-app1-si
+
+networks:
+  proxy-nw:
+    external: true
+  #web-gateway:
+  # external: true
+  # name: proxy-nw  # "web-gateway" dans ce fichier est en fait "proxy-nw" sur le serveur
+  internal-app1-si:
+    # Réseau privé pour que PHP parle à sa DB sans voir la DB de l'App 2
+    driver: bridge
+
+volumes:
+  db_data1_si:

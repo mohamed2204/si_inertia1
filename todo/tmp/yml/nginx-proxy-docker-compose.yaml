@@ -1,0 +1,244 @@
+name: mailserver
+services:
+  mailserver:
+    cpu_shares: 90
+    command: [ ]
+    container_name: mailserver
+    deploy:
+      resources:
+        limits:
+          memory: "1803550720"
+    domainname: mail.local
+    environment:
+      AMAVIS_LOG_LEVEL: "0"
+      DOVECOT_TLS: "no"
+      ENABLE_CLAMAV: "0"
+      ENABLE_FAIL2BAN: "0"
+      ENABLE_SASL_AUTH: "1"
+      ENABLE_SPAMASSASSIN: "0"
+      P_AMAVIS_BAD_HEADER_QUARANTINE_METHOD: "null"
+      PERMIT_DOCKER: network
+      SSL_CERT_PATH: /etc/letsencrypt/live/local.test/fullchain.pem
+      SSL_KEY_PATH: /etc/letsencrypt/live/local.test/privkey.pem
+      SSL_TYPE: manual
+    hostname: mailserver
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    networks:
+      - proxy-nw
+    ports:
+      - mode: ingress
+        target: 25
+        published: "25"
+        protocol: tcp
+      - mode: ingress
+        target: 143
+        published: "143"
+        protocol: tcp
+      - mode: ingress
+        target: 587
+        published: "587"
+        protocol: tcp
+      - mode: ingress
+        target: 993
+        published: "993"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/mohamed/docker/mailserver/certs/server.crt
+        target: /etc/letsencrypt/live/local.test/fullchain.pem
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/certs/server.key
+        target: /etc/letsencrypt/live/local.test/privkey.pem
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/docker-data/dms/mail-data
+        target: /var/mail
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/docker-data/dms/mail-state
+        target: /var/mail-state
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/docker-data/dms/config
+        target: /tmp/docker-mailserver
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+        bind:
+          create_host_path: true
+  nginx-proxy:
+    cpu_shares: 90
+    command: [ ]
+    deploy:
+      resources:
+        limits:
+          memory: "1803550720"
+    image: jc21/nginx-proxy-manager:latest
+#    networks:
+#      mail-network: null
+    networks:
+      - proxy-nw
+    ports:
+      - mode: ingress
+        target: 80
+        published: "80"
+        protocol: tcp
+      - mode: ingress
+        target: 443
+        published: "443"
+        protocol: tcp
+      - mode: ingress
+        target: 81
+        published: "81"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: bind
+        source: /home/mohamed/docker/mailserver/docker-data/npm/data
+        target: /data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/docker-data/npm/letsencrypt
+        target: /etc/letsencrypt
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/certs/server.crt
+        target: /data/custom_ssl/server.crt
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/mohamed/docker/mailserver/certs/server.key
+        target: /data/custom_ssl/server.key
+        read_only: true
+        bind:
+          create_host_path: true
+  webmail:
+    cpu_shares: 90
+    command: [ ]
+    container_name: webmail
+    depends_on:
+      mailserver:
+        condition: service_started
+        required: true
+    deploy:
+      resources:
+        limits:
+          memory: "1803550720"
+    environment:
+      ROUNDCUBEMAIL_CONNECTION_PROXIES: "1"
+      ROUNDCUBEMAIL_DEFAULT_HOST: mailserver
+      ROUNDCUBEMAIL_DEFAULT_PORT: "143"
+      ROUNDCUBEMAIL_PLUGINS: archive,zipdownload,managesieve
+      ROUNDCUBEMAIL_PRODUCT_NAME: Mon Mail Local
+      ROUNDCUBEMAIL_SMTP_AUTH_TYPE: PLAIN
+      ROUNDCUBEMAIL_SMTP_PASS: '%p'
+      ROUNDCUBEMAIL_SMTP_PORT: "25"
+      ROUNDCUBEMAIL_SMTP_SERVER: mailserver
+      ROUNDCUBEMAIL_SMTP_USER: '%u'
+      ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: 20M
+    expose:
+      - "80"
+    hostname: webmail
+    image: roundcube/roundcubemail:latest
+    networks:
+      - proxy-nw
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8080"
+        protocol: tcp
+    restart: always
+  # --- APPLICATION LARAVEL 1 ---
+#  app1:
+#    build:
+#      context: ./app1
+#      dockerfile: docker/php.Dockerfile
+#    container_name: app1_php
+#    restart: always
+#    volumes:
+#      - ./app1:/var/www
+#      #- composer_cache:/root/.composer/cache
+#    networks:
+#      mail-network: null
+#    depends_on:
+#      - db1
+#
+#  db1:
+#    image: postgres:15-alpine
+#    container_name: app1_db
+#    environment:
+#      POSTGRES_DB: desa_db2
+#      POSTGRES_USER: desa
+#      POSTGRES_PASSWORD: desa
+#    volumes:
+#      - db1_data:/var/lib/postgresql/data
+#    networks:
+#      mail-network: null
+#    ports:
+#      - "5433:5432" # Accès extérieur via le port 5433
+
+  # --- APPLICATION LARAVEL 2 ---
+#    app2:
+#      build:
+#        context: ./app2
+#        dockerfile: docker/php.Dockerfile
+#      container_name: app2_php
+#      restart: always
+#      volumes:
+#        - ./app2:/var/www
+#        - composer_cache:/root/.composer/cache
+#      networks:
+#        mail-network: null
+#      depends_on:
+#        - db2
+#
+#    db2:
+#      image: postgres:15-alpine
+#      container_name: app2_db
+#      environment:
+#        POSTGRES_DB: app2_db
+#        POSTGRES_USER: user2
+#        POSTGRES_PASSWORD: password2
+#      volumes:
+#        - db2_data:/var/lib/postgresql/data
+#      networks:
+#        mail-network: null
+
+#networks:
+#  mail-network:
+#    name: mailserver_mail-network
+#    driver: bridge
+networks:
+  proxy-nw:
+    external: true
+
+volumes:
+  #composer_cache:
+  db1_data:
+  #db2_data:
+
+x-casaos:
+  author: self
+  category: self
+  hostname: mail.local
+  icon: ""
+  index: /
+  is_uncontrolled: false
+  port_map: ""
+  scheme: http
+  title:
+    custom: mailserver

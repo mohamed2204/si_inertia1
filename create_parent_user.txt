@@ -1,0 +1,8 @@
+use App\Models\ParentUser;
+use Illuminate\Support\Facades\Hash;
+
+ParentUser::create([
+    'nom' => 'Parent Test',
+    'email' => 'parent@test.com',
+    'password' => Hash::make('password123'),
+]);
