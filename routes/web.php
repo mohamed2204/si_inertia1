@@ -2,17 +2,37 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Auth\LoginController;
 
 
-// Route pour afficher la page de login
-Route::get('/auth/login', function () {
-    //return Inertia::render('Auth/Login'); // Chemin relatif au dossier resources/js/Pages
-    return Inertia::render('Auth/Login/Page');
-})->name('login');
+Route::get('/auth/login', [LoginController::class, 'show'])->name('login')->middleware('guest');
+Route::post('/auth/login', [LoginController::class, 'authenticate'])->middleware('guest');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::get('/', function () {
-    return Inertia::render('Dashboard');
-})->name('home');;
+// --- ROUTES PROTÉGÉES (Middleware auth) ---
+Route::middleware(['auth'])->group(function () {
+    
+    // Ta route Home (Dashboard) est maintenant protégée
+    Route::get('/', function () {
+        return Inertia::render('Dashboard');
+    })->name('home');
+
+    // Ajoute ici toutes tes autres pages Sakai (Profile, Settings, etc.)
+    Route::get('/uikit/formlayout', function () {
+        return Inertia::render('Uikit/FormLayout');
+    });
+});
+
+
+// // Route pour afficher la page de login
+// Route::get('/auth/login', function () {
+//     //return Inertia::render('Auth/Login'); // Chemin relatif au dossier resources/js/Pages
+//     return Inertia::render('Auth/Login/Page');
+// })->name('login');
+
+// Route::get('/', function () {
+//     return Inertia::render('Dashboard');
+// })->name('home');;
 
 // Public login route
 // Route::middleware('guest:web')->group(function () {

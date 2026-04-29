@@ -4,17 +4,39 @@ import React, { useContext } from 'react';
 import AppMenuitem from './AppMenuitem';
 import { LayoutContext } from './context/layoutcontext';
 import { MenuProvider } from './context/menucontext';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 //import Link from 'next/link';
 // import { AppMenuItem } from '@/types';
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
 
+    // On récupère les données partagées par Laravel
+    const { auth } = usePage().props;
+
+    // Helper rapide pour vérifier les rôles
+    const hasRole = (role) => auth.user?.roles?.includes(role);
+    const hasPermission = (perm) => auth.user?.permissions?.includes(perm);
+
     const model = [
         {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
+        },
+        {
+            label: 'Administration',
+            // Le groupe entier disparaît si l'utilisateur n'est pas admin
+            visible: hasRole('admin'),
+            items: [
+                {
+                    label: 'Gestion Utilisateurs',
+                    icon: 'pi pi-fw pi-users',
+                    to: '/admin/users',
+                    // On peut aussi filtrer par permission précise
+                    visible: hasPermission('view_users')
+                },
+                { label: 'Configuration', icon: 'pi pi-fw pi-cog', to: '/admin/settings' }
+            ]
         },
         {
             label: 'UI Components',

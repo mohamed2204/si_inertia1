@@ -29,15 +29,25 @@ const AppMenuitem = (props: AppMenuItemProps) => {
     // const { activeMenu, setActiveMenu } = useContext(MenuContext);
     // const item = props.item;
 
+
     const { item, index, root, parentKey } = props;
-    const { activeMenu, setActiveMenu } = useContext(MenuContext);
+
+    const menuContext = useContext(MenuContext);
+
+    // Si le contexte est null, on ne fait rien (ou on retourne null)
+    if (!menuContext) {
+        return null; 
+    }
+    const { activeMenu, setActiveMenu } = menuContext;
+
     const { url } = usePage();
     const pathname = url.split('?')[0];
 
     // 1. Création de la Ref pour corriger l'erreur findDOMNode
     const submenuRef = useRef(null);
 
-    const key = props.parentKey ? props.parentKey + '-' + props.index : String(props.index);
+    const key = parentKey ? parentKey + '-' + index : String(index);
+
     const isActiveRoute = item!.to && pathname === item!.to;
     const active = activeMenu === key || activeMenu.startsWith(key + '-');
     const onRouteChange = (currentUrl: string) => {
