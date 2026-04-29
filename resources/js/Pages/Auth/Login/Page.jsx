@@ -6,9 +6,7 @@ import { InputText } from "primereact/inputtext";
 import { classNames } from "primereact/utils";
 import { router } from "@inertiajs/react";
 // @ts-ignore
-import { LayoutContext } from "@/Layouts/context/layoutcontext";
-
-import { LayoutProvider } from "@/Layouts/context/layoutcontext";
+import { LayoutContext, LayoutProvider } from "@/Layouts/context/layoutcontext";
 
 const LoginPage = () => {
     const [password, setPassword] = useState("");
