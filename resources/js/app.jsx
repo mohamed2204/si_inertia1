@@ -1,11 +1,13 @@
-import './bootstrap';
-import '../css/app.css';
+import "./bootstrap";
+import "../css/app.css";
 
 // resources/js/app.jsx
-import { PrimeReactProvider } from 'primereact/api';
+import { PrimeReactProvider } from "primereact/api";
 
 // 1. Thème de base PrimeReact (Lara, Saga, etc.)
-import "primereact/resources/themes/lara-light-indigo/theme.css";
+//import "primereact/resources/themes/lara-light-indigo/theme.css";
+//import "primereact/resources/themes/saga-blue/theme.css";
+import "primereact/resources/themes/soho-dark/theme.css";
 
 // 2. Coeur de PrimeReact et Icônes
 import "primereact/resources/primereact.min.css";
@@ -18,9 +20,9 @@ import "primeflex/primeflex.css";
 import "../css/sakai/layout/layout.scss";
 import "../css/sakai/demo/Demos.scss"; // Optionnel, pour les exemples de composants
 
-import { createRoot } from 'react-dom/client';
-import { createInertiaApp } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { createRoot } from "react-dom/client";
+import { createInertiaApp } from "@inertiajs/react";
+import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 
 // createInertiaApp({
 //     resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
@@ -31,12 +33,16 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 createInertiaApp({
     title: (title) => `${title} - My App`,
-    resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
+    resolve: (name) =>
+        resolvePageComponent(
+            `./Pages/${name}.jsx`,
+            import.meta.glob("./Pages/**/*.jsx"),
+        ),
     setup({ el, App, props }) {
         createRoot(el).render(
             <PrimeReactProvider>
                 <App {...props} />
-            </PrimeReactProvider>
+            </PrimeReactProvider>,
         );
     },
 });
