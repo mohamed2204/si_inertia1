@@ -9,6 +9,11 @@ Route::get('/auth/login', [LoginController::class, 'show'])->name('login')->midd
 Route::post('/auth/login', [LoginController::class, 'authenticate'])->middleware('guest');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+
+Route::get('pages/crud', function () {
+    return Inertia::render('Crud/Crud');
+}); 
+
 // --- ROUTES PROTÉGÉES (Middleware auth) ---
 Route::middleware(['auth'])->group(function () {
     
@@ -16,6 +21,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', function () {
         return Inertia::render('Dashboard');
     })->name('home');
+
+    // Route::get('pages/crud', function () {
+    //    // return Inertia::render('Crud');
+    //     return Inertia::render('Crud/Crud');
+    // })->name('crud');
 
     // Ajoute ici toutes tes autres pages Sakai (Profile, Settings, etc.)
     Route::get('/uikit/formlayout', function () {
