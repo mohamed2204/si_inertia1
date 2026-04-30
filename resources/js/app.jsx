@@ -1,5 +1,5 @@
-import "./bootstrap";
-import "../css/app.css";
+// import "./bootstrap";
+// import "../css/app.css";
 
 // resources/js/app.jsx
 import { PrimeReactProvider } from "primereact/api";
@@ -7,7 +7,8 @@ import { PrimeReactProvider } from "primereact/api";
 // 1. Thème de base PrimeReact (Lara, Saga, etc.)
 //import "primereact/resources/themes/lara-light-indigo/theme.css";
 //import "primereact/resources/themes/saga-blue/theme.css";
-import "primereact/resources/themes/soho-dark/theme.css";
+//import "primereact/resources/themes/soho-dark/theme.css";
+import "primereact/resources/themes/mdc-light-deeppurple/theme.css";
 
 // 2. Coeur de PrimeReact et Icônes
 import "primereact/resources/primereact.min.css";

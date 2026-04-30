@@ -19,10 +19,17 @@ import { usePage } from '@inertiajs/react';
 // import { ChildContainerProps, LayoutState, AppTopbarRef } from '@/types';
 //const Layout = ({ children }: ChildContainerProps) => {
 const Layout = ({ children }) => {
-    const { layoutConfig, layoutState, setLayoutState } = useContext(LayoutContext);
+    const { layoutConfig,
+        layoutState,
+        setLayoutState,
+        onMenuToggle,           // <--- MANQUANT
+        showProfileSidebar      // <--- MANQUANT
+    } = useContext(LayoutContext);
+
     //const { setRipple } = useContext(PrimeReactContext);
     const topbarRef = useRef(null);
     const sidebarRef = useRef(null);
+
     const [bindMenuOutsideClickListener, unbindMenuOutsideClickListener] = useEventListener({
         type: 'click',
         listener: (event) => {
@@ -55,6 +62,24 @@ const Layout = ({ children }) => {
         //hideMenu();
         //hideProfileMenu();
     }, [pathname, searchParams]);
+
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth > 991) {
+                // Si on repasse en desktop, on ferme le menu mobile
+                setLayoutState((prev) => ({
+                    ...prev,
+                    staticMenuMobileActive: false,
+                    overlayMenuActive: false
+                }));
+                unblockBodyScroll();
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [bindProfileMenuOutsideClickListener, unbindProfileMenuOutsideClickListener] = useEventListener({
         type: 'click',
@@ -139,7 +164,12 @@ const Layout = ({ children }) => {
     return (
         <React.Fragment>
             <div className={containerClass}>
-                <AppTopbar ref={topbarRef} />
+                <AppTopbar
+                    ref={topbarRef}
+                    onMenuToggle={onMenuToggle}
+                    showProfileSidebar={showProfileSidebar}
+                    layoutState={layoutState} // Nécessaire pour les classes actives
+                />
                 <div ref={sidebarRef} className="layout-sidebar">
                     <AppSidebar />
                 </div>

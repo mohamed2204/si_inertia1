@@ -4,7 +4,7 @@ import React, { useState, createContext } from 'react';
 export const LayoutContext = createContext({});
 
 export const LayoutProvider = ({ children }) => {
-   const [layoutConfig, setLayoutConfig] = useState({
+    const [layoutConfig, setLayoutConfig] = useState({
         ripple: false,
         inputStyle: 'outlined',
         menuMode: 'static',
@@ -23,18 +23,65 @@ export const LayoutProvider = ({ children }) => {
         menuHoverActive: false
     });
 
+    // const onMenuToggle = () => {
+    //     if (isOverlay()) {
+    //         setLayoutState((prevLayoutState) => ({ ...prevLayoutState, overlayMenuActive: !prevLayoutState.overlayMenuActive }));
+    //     }
+
+    //     if (isDesktop()) {
+    //         setLayoutState((prevLayoutState) => ({ ...prevLayoutState, staticMenuDesktopInactive: !prevLayoutState.staticMenuDesktopInactive }));
+    //     } else {
+    //         setLayoutState((prevLayoutState) => ({ ...prevLayoutState, staticMenuMobileActive: !prevLayoutState.staticMenuMobileActive }));
+    //     }
+    // };
+
+    // const onMenuToggle = () => {
+    //     if (isOverlay()) {
+    //         setLayoutState((prev) => ({
+    //             ...prev,
+    //             overlayMenuActive: !prev.overlayMenuActive
+    //         }));
+    //     }
+
+    //     if (isDesktop()) {
+    //         setLayoutState((prev) => ({
+    //             ...prev,
+    //             staticMenuDesktopInactive: !prev.staticMenuDesktopInactive
+    //         }));
+    //     } else {
+    //         // Mode Mobile : On bascule l'activation du menu mobile
+    //         setLayoutState((prev) => ({
+    //             ...prev,
+    //             staticMenuMobileActive: !prev.staticMenuMobileActive
+    //         }));
+    //     }
+    // };
+
     const onMenuToggle = () => {
+        // On récupère la largeur actuelle au moment du clic
+        const width = window.innerWidth;
+
         if (isOverlay()) {
-            setLayoutState((prevLayoutState) => ({ ...prevLayoutState, overlayMenuActive: !prevLayoutState.overlayMenuActive }));
+            setLayoutState((prev) => ({
+                ...prev,
+                overlayMenuActive: !prev.overlayMenuActive
+            }));
         }
 
-        if (isDesktop()) {
-            setLayoutState((prevLayoutState) => ({ ...prevLayoutState, staticMenuDesktopInactive: !prevLayoutState.staticMenuDesktopInactive }));
+        if (width > 991) {
+            // Mode Desktop
+            setLayoutState((prev) => ({
+                ...prev,
+                staticMenuDesktopInactive: !prev.staticMenuDesktopInactive
+            }));
         } else {
-            setLayoutState((prevLayoutState) => ({ ...prevLayoutState, staticMenuMobileActive: !prevLayoutState.staticMenuMobileActive }));
+            // Mode Mobile : On s'assure d'activer le menu mobile
+            setLayoutState((prev) => ({
+                ...prev,
+                staticMenuMobileActive: !prev.staticMenuMobileActive
+            }));
         }
     };
-
     const showProfileSidebar = () => {
         setLayoutState((prevLayoutState) => ({ ...prevLayoutState, profileSidebarVisible: !prevLayoutState.profileSidebarVisible }));
     };

@@ -7,7 +7,7 @@ import { Avatar } from 'primereact/avatar'; // Import de l'Avatar
 const AppTopbar = forwardRef((props, ref) => {
     const { layoutConfig, layoutState, onMenuToggle, showProfileSidebar } = useContext(LayoutContext);
     const { auth } = usePage().props; // Récupération des infos utilisateur
-    
+
     const menubuttonRef = useRef(null);
     const topbarmenuRef = useRef(null);
     const topbarmenubuttonRef = useRef(null);
@@ -26,25 +26,26 @@ const AppTopbar = forwardRef((props, ref) => {
         <div className="layout-topbar">
             <Link href="/" className="layout-topbar-logo">
                 <img src={`/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} alt="logo" />
-                <span>SAKAI</span>
+                <span>SI</span>
             </Link>
 
+            {/* Bouton Menu Principal (Hamburger) */}
             <button ref={menubuttonRef} type="button" className="p-link layout-menu-button layout-topbar-button" onClick={onMenuToggle}>
                 <i className="pi pi-bars" />
             </button>
-
+            {/* Bouton Menu Profil (les 3 points ou l'icône user sur mobile) */}
             <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-menu-button layout-topbar-button" onClick={showProfileSidebar}>
                 <i className="pi pi-ellipsis-v" />
             </button>
-
+            {/* Le menu de profil lui-même */}
             <div ref={topbarmenuRef} className={classNames('layout-topbar-menu', { 'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible })}>
-                
+
                 {/* --- SECTION INFO UTILISATEUR --- */}
                 {auth.user && (
                     <div className="flex align-items-center px-3 gap-2 border-right-1 surface-border mr-2">
-                        <Avatar 
-                            label={auth.user.name.charAt(0).toUpperCase()} 
-                            shape="circle" 
+                        <Avatar
+                            label={auth.user.name.charAt(0).toUpperCase()}
+                            shape="circle"
                             style={{ backgroundColor: 'var(--primary-color)', color: '#ffffff' }}
                         />
                         <div className="flex flex-column">
@@ -58,7 +59,7 @@ const AppTopbar = forwardRef((props, ref) => {
                     <i className="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
-                
+
                 <Link href="/profile" className="p-link layout-topbar-button">
                     <i className="pi pi-user"></i>
                     <span>Profile</span>
