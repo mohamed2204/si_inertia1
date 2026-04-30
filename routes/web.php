@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\LoginController;
-
+use App\Http\Controllers\DesignationController;
 
 Route::get('/auth/login', [LoginController::class, 'show'])->name('login')->middleware('guest');
 Route::post('/auth/login', [LoginController::class, 'authenticate'])->middleware('guest');
@@ -21,6 +21,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', function () {
         return Inertia::render('Dashboard');
     })->name('home');
+
+
+    // Version explicite (recommandée pour mieux contrôler vos URLs)
+    Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
+    Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
+    
+    // Si vous prévoyez de gérer l'édition et la suppression plus tard :
+    Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
+    Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
+
+    /* 
+       Alternative rapide : 
+       Route::resource('designations', DesignationController::class); 
+    */
+
 
     // Route::get('pages/crud', function () {
     //    // return Inertia::render('Crud');

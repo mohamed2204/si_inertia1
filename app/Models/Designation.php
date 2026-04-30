@@ -15,7 +15,8 @@ class Designation extends Model
     protected $table = 'designations';
 
     protected $fillable = [
-        'laboratoire_id',
+        //'laboratoire_id',
+        'sous_departement_id', // Pour savoir à quel groupe appartient la semaine
         'date_debut',
         'date_fin',
         'semaine_nom',
@@ -33,10 +34,10 @@ class Designation extends Model
     {
         return $this->belongsTo(SousDepartement::class, 'sous_departement_id');
     }
-    public function laboratoire(): BelongsTo
-    {
-        return $this->belongsTo(Laboratoire::class);
-    }
+    // public function laboratoire(): BelongsTo
+    // {
+    //     return $this->belongsTo(Laboratoire::class);
+    // }
 
     public function items(): HasMany
     {

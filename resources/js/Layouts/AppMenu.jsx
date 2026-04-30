@@ -35,7 +35,19 @@ const AppMenu = () => {
                     // On peut aussi filtrer par permission précise
                     visible: hasPermission('view_users')
                 },
-                { label: 'Configuration', icon: 'pi pi-fw pi-cog', to: '/admin/settings' }
+                {   
+                    label: 'Configuration', 
+                    icon: 'pi pi-fw pi-cog', 
+                    to: '/admin/settings', 
+                    // visible: hasPermission('view_users')
+                },
+                {   
+                    label: 'Designations', 
+                    icon: 'pi pi-fw pi-cog', 
+                    to: '/designations', 
+                    // visible: hasPermission('view_users')
+                }
+
             ]
         },
         {
