@@ -41,4 +41,9 @@ class DesignationItem extends Model
         // C'est ici que tout se joue désormais
         return $this->belongsTo(RoleTache::class, 'role_tache_id');
     }
+
+    public function laboratoire(): BelongsTo
+    {
+        return $this->belongsTo(Laboratoire::class);
+    }
 }

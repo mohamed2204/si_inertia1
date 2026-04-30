@@ -11,8 +11,9 @@ import { Toast } from 'primereact/toast';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Calendar } from 'primereact/calendar';
+import { Badge } from 'primereact/badge';
 
-const DesignationsPage = ({ designations, departements,sousDepartements, laboratoires, membres, rolesTache }) => {
+const DesignationsPage = ({ designations, departements, sousDepartements, laboratoires, membres }) => {
     const [visible, setVisible] = useState(false);
     const toast = useRef(null);
     //const { flash } = usePage().props;
@@ -30,8 +31,10 @@ const DesignationsPage = ({ designations, departements,sousDepartements, laborat
     const filteredSousDepts = sousDepartements.filter(sd => sd.departement_id === data.departement_id);
     const activeLabs = laboratoires.filter(lab => lab.sous_departement_id === data.sous_departement_id);
 
-    const onMemberChange = (labId, roleId, selectedIds) => {
+    const onMemberChange = (labId, roleId, selectedIds, event) => {
         const current = { ...data.affectations };
+
+
         if (!current[labId]) current[labId] = [];
 
         const roleIndex = current[labId].findIndex(r => r.role_id === roleId);
@@ -46,29 +49,101 @@ const DesignationsPage = ({ designations, departements,sousDepartements, laborat
     const editDesignation = (row) => {
         if (!row) return;
 
-        const formattedAffectations = {};
-        // Sécurisation contre le "undefined" avec || []
+        // 1. Trouver le département parent à partir du sous-département de la ligne
+        const parentDept = sousDepartements.find(sd => sd.id === row.sous_departement_id);
+        const departementId = parentDept ? parentDept.departement_id : null;
+
+        // console.log('Données de la désignation : ' + JSON.stringify(row)); // Debug: Affiche les données reçues
+        // console.log('Données des affectations : ' + JSON.stringify(row.items)); // Debug: Affiche les données des affectations
+
+        // 2. Formater les affectations (votre logique actuelle est correcte)
+        // const formattedAffectations = {};
+        // (row.items || []).forEach(item => {
+        //     if (!formattedAffectations[item.laboratoire_id]) {
+        //         formattedAffectations[item.laboratoire_id] = [];
+        //     }
+        //     formattedAffectations[item.laboratoire_id].push({
+        //         role_id: item.role_tache_id,
+        //         membres: (item.membres || []).map(m => m.id)
+        //     });
+        // });
+
+        // const formattedAffectations = {};
+        // (row.items || []).forEach(item => {
+        //     // On s'assure d'utiliser l'ID du lab comme clé
+        //     if (!formattedAffectations[item.laboratoire_id]) {
+        //         formattedAffectations[item.laboratoire_id] = [];
+        //     }
+
+        //     formattedAffectations[item.laboratoire_id].push({
+        //         // Forcer le format Number si nécessaire pour la correspondance
+        //         role_id: Number(item.role_tache_id),
+        //         // Extraire les IDs des membres et s'assurer qu'ils sont des nombres
+        //         membres: (item.membres || []).map(m => Number(m.id))
+        //     });
+        // });
+
+        // // 3. Mettre à jour TOUTES les clés nécessaires à l'affichage
+        // setData({
+        //     id: row.id,
+        //     semaine_nom: row.semaine_nom || '',
+        //     date_debut: row.date_debut ? new Date(row.date_debut) : null,
+        //     departement_id: departementId, // CRUCIAL pour filtrer filteredSousDepts
+        //     sous_departement_id: row.sous_departement_id || null, // Débloque activeLabs
+        //     affectations: formattedAffectations
+        // });
+
+        // const formatted = {};
+        // (row.items || []).forEach(item => {
+        //     const labId = item.laboratoire_id;
+        //     if (!formatted[labId]) formatted[labId] = [];
+
+        //     // CORRECTION ICI : 
+        //     // Vérifiez si row.items[x].membres existe et contient des données
+        //     //const membresIds = (item.membres || []).map(m => Number(m.id));
+        //     const membresIds = item.membre_id ? [Number(item.membre_id)] : [];
+
+        //     formatted[labId].push({
+        //         role_id: Number(item.role_tache_id),
+        //         membres: membresIds // Assurez-vous que ce n'est pas un tableau vide
+        //     });
+        // });
+
+        const formatted = {};
+
         (row.items || []).forEach(item => {
-            if (!formattedAffectations[item.laboratoire_id]) {
-                formattedAffectations[item.laboratoire_id] = [];
-            }
-            formattedAffectations[item.laboratoire_id].push({
-                role_id: item.role_tache_id,
-                membres: (item.membres || []).map(m => m.id)
+            const labId = item.laboratoire_id;
+            if (!formatted[labId]) formatted[labId] = [];
+
+            // On prépare l'option pour le Select : ID + NOM
+            const membreOption = item.membre ? {
+                value: Number(item.membre_id),
+                label: item.membre.nom // C'est cette clé qui permettra l'affichage
+            } : null;
+
+            formatted[labId].push({
+                role_id: Number(item.role_tache_id),
+                // ON NE STOCKE QUE L'ID ICI
+                membres: item.membre_id ? [Number(item.membre_id)] : []
             });
+
+            // CORRECT : On affiche le dernier élément ajouté au tableau
+            const lastIndex = formatted[labId].length - 1;
+            console.log(`Membre ajouté :`, formatted[labId][lastIndex].membres);
         });
 
         setData({
             id: row.id,
-            date_debut: row.date_debut ? new Date(row.date_debut) : null,
+            // Correction ici : force une chaîne vide si row.semaine_nom est null en base
             semaine_nom: row.semaine_nom || '',
+            date_debut: row.date_debut ? new Date(row.date_debut) : null,
+            departement_id: parentDept?.departement_id || null,
             sous_departement_id: row.sous_departement_id || null,
-            affectations: formattedAffectations
+            affectations: formatted
         });
+
         setVisible(true);
     };
-
-
 
     // Nouveau bouton "Ajouter" pour réinitialiser le formulaire
     const openNew = () => {
@@ -128,12 +203,55 @@ const DesignationsPage = ({ designations, departements,sousDepartements, laborat
                         onClick={openNew} // <--- Appelle la fonction de réinitialisation
                     />
                 </div>
-                <DataTable value={designations}>
-                    <Column field="semaine_nom" header="Semaine" />
-                    <Column field="sous_departement.nom" header="Sous-Département" />
-                    <Column header="Actions" body={(row) => (
-                        <Button icon="pi pi-pencil" text onClick={() => editDesignation(row)} />
-                    )} />
+                <DataTable value={designations} responsiveLayout="stack" breakpoint="960px" paginator rows={10}>
+                    {/* 1. Colonne Département (via la relation sous-département) */}
+                    <Column
+                        header="Département"
+                        body={(row) => row.sous_departement?.departement?.nom || 'N/A'}
+                        sortable
+                    />
+
+                    {/* 2. Colonne Semaine */}
+                    <Column field="semaine_nom" header="Semaine" sortable />
+
+                    {/* 3. Colonne Sous-Département */}
+                    <Column field="sous_departement.nom" header="Sous-Département" sortable />
+
+                    {/* 4. Colonne Date (Formatée) */}
+                    <Column
+                        header="Date"
+                        body={(row) => row.date_debut ? new Date(row.date_debut).toLocaleDateString() : ''}
+                        sortable
+                    />
+
+                    {/* 5. Colonne Labs (Badges) */}
+                    <Column
+                        header="Laboratoires"
+                        body={(row) => {
+                            const labs = [...new Set(row.items?.map(i => i.laboratoire?.nom))].filter(Boolean);
+                            return (
+                                <div className="flex flex-wrap gap-2">
+                                    {labs.map((name, i) => (
+                                        <Badge key={i} value={name} severity="info" className="px-2" />
+                                    ))}
+                                </div>
+                            );
+                        }}
+                    />
+
+                    {/* 6. Actions */}
+                    {/* Colonne Actions */}
+                    <Column
+                        header="Actions"
+                        style={{ width: '5rem' }}
+                        body={(row) => (
+                            <Button
+                                icon="pi pi-pencil"
+                                className="p-button-text p-button-rounded"
+                                onClick={() => editDesignation(row)}
+                            />
+                        )}
+                    />
                 </DataTable>
             </div>
 
@@ -185,11 +303,19 @@ const DesignationsPage = ({ designations, departements,sousDepartements, laborat
                                             {/* {requis.est_obligatoire === 1 && <span className="text-red-500">*</span>} */}
                                         </label>
                                         <MultiSelect
-                                            value={data.affectations[lab.id]?.find(r => r.role_id === requis.role_tache_id)?.membres || []}
-                                            options={membres}
-                                            optionLabel="nom" optionValue="id"
+                                            // On passe directement le tableau d'IDs qui est dans le state
+                                            value={
+                                                data.affectations[lab.id]
+                                                    ?.find(r => Number(r.role_id) === Number(requis.role_tache_id))
+                                                    ?.membres || []
+                                            }
+                                            options={membres} // Cette liste doit contenir {id, nom}
+                                            optionLabel="nom"
+                                            optionValue="id"
                                             onChange={e => onMemberChange(lab.id, requis.role_tache_id, e.value)}
-                                            display="chip" filter className="w-full"
+                                            display="chip"
+                                            filter
+                                            className="w-full"
                                         />
                                     </div>
                                 ))}
@@ -202,299 +328,9 @@ const DesignationsPage = ({ designations, departements,sousDepartements, laborat
                     <Button label="Enregistrer la planification" icon="pi pi-check" onClick={submit} loading={processing} />
                 </div>
             </Dialog>
-            {/* <Dialog visible={visible} onHide={() => setVisible(false)} header="Planification Multi-Laboratoires" style={{ width: '70vw' }}>
-                <div className="grid p-fluid">
-                    <div className="col-12 md:col-4">
-                        <label className="font-bold">Date de début</label>
-                        <Calendar
-                            value={data.date_debut}
-                            onChange={(e) => setData('date_debut', e.value)}
-                            dateFormat="yy-mm-dd"
-                            className={errors.date_debut ? 'p-invalid' : ''} // Bordure rouge si erreur
-                        />
-                        {errors.date_debut && <small className="p-error">{errors.date_debut}</small>}
-                    </div>
-                    <div className="col-12 md:col-6">
-                        <label
-                            className="font-bold">Nom de la Semaine
-                        </label>
-                        <InputText
-                            value={data.semaine_nom}
-                            onChange={e => setData('semaine_nom', e.target.value)}
-                        />
-                    </div>
-                    <div className="col-12 md:col-6">
-                        <label className="font-bold">Sous-Département</label>
-                        <Dropdown
-                            value={data.sous_departement_id}
-                            options={sousDepartements}
-                            optionLabel="nom"
-                            optionValue="id"
-                            onChange={e => setData('sous_departement_id', e.value)}
-                            className={errors.sous_departement_id ? 'p-invalid' : ''}
-                        />
-                        {errors.sous_departement_id && <small className="p-error">{errors.sous_departement_id}</small>}
-                    </div>
-                </div>
 
-                {activeLabs.length > 0 && (
-                    <div className="mt-4">
-                        <TabView>
-                            {activeLabs.map(lab => {
-                                // Vérifier si ce labo a des affectations
-                                const hasMembersInLab = data.affectations[lab.id]?.some(r => r.membres?.length > 0);
-
-                                return (
-                                    <TabPanel
-                                        key={lab.id}
-                                        header={
-                                            <span>
-                                                {lab.nom}
-                                                {!hasMembersInLab && <i className="pi pi-exclamation-circle ml-2 text-orange-500" title="Aucun membre affecté"></i>}
-                                            </span>
-                                        }
-                                    >
-                                        {rolesTache.map(role => (
-                                            <div key={role.id} className="field mb-4">
-                                                <label className="block mb-2">{role.libelle}</label>
-                                                <MultiSelect
-                                                    value={data.affectations[lab.id]?.find(r => r.role_id === role.id)?.membres || []}
-                                                    options={membres}
-                                                    optionLabel="nom_complet"
-                                                    optionValue="id"
-                                                    onChange={e => onMemberChange(lab.id, role.id, e.value)}
-                                                    display="chip"
-                                                    filter
-                                                    placeholder={`Affecter des ${role.libelle}`}
-                                                />
-                                            </div>
-                                        ))}
-                                    </TabPanel>
-                                );
-                            })}
-                        </TabView>
-                    </div>
-                )}
-
-                <div className="flex justify-content-end mt-4">
-                    {/* <Button label="Enregistrer" icon="pi pi-check" onClick={() => data.id ? put(route('designations.update', data.id)) : post(route('designations.store'))} loading={processing} /> */}
-            {/* <Button
-                        label="Enregistrer"
-                        icon="pi pi-check"
-                        onClick={() => data.id
-                            ? put(`/designations/${data.id}`)  // URL manuelle pour UPDATE
-                            : post('/designations')            // URL manuelle pour STORE
-                        }
-                        loading={processing}
-                    /> */}
-            {/* <Button
-                        label="Enregistrer"
-                        icon="pi pi-check"
-                        onClick={submit} // Appelle la fonction de validation avant l'envoi
-                        loading={processing}
-                    />
-                </div> */}
-            {/* </Dialog> */}
         </Layout>
     );
 };
-// const DesignationsPage = ({ designations, departements, sousDepartements, laboratoires, membres, rolesTache }) => {
-//     const [visible, setVisible] = useState(false);
-//     const toast = useRef(null);
-//     const { flash } = usePage().props;
-
-//     // Filtrage dynamique
-//     const [filteredSousDepts, setFilteredSousDepts] = useState([]);
-//     const [activeLabs, setActiveLabs] = useState([]);
-
-//     // Ajout de l'ID dans le formulaire pour savoir si on édite
-//     const { data, setData, post, put, processing, reset } = useForm({
-//         id: null,
-//         semaine_nom: '',
-//         departement_id: null,
-//         sous_departement_id: null,
-//         affectations: {}
-//     });
-
-//     // --- LOGIQUE D'ÉDITION ---
-//     const editDesignation = (designation) => {
-
-//         // Si row est undefined, on sort tout de suite
-//         if (!designation) return;
-
-//         // 1. On prépare les affectations pour le format MultiSelect local
-//         const formattedAffectations = {};
-
-//         (designation.items || []).forEach(item => {
-//             if (!formattedAffectations[item.laboratoire_id]) {
-//                 formattedAffectations[item.laboratoire_id] = [];
-//             }
-//             formattedAffectations[item.laboratoire_id].push({
-//                 role_id: item.role_tache_id,
-//                 membres: (item.membres || []).map(m => m.id) // On extrait les IDs des membres
-//             });
-//         });
-
-//         // 2. On remplit le formulaire avec les données existantes
-//         setData({
-//             id: row.id,
-//             semaine_nom: row.semaine_nom || '',
-//             departement_id: row.sous_departement?.departement_id || null,
-//             sous_departement_id: row.sous_departement_id || null,
-//             affectations: formattedAffectations
-//         });
-
-//         setVisible(true);
-//     };
-
-//     // --- LOGIQUE DE SOUMISSION ---
-//     const submit = () => {
-//         if (data.id) {
-//             // Si on a un ID, on appelle la route UPDATE (PUT)
-//             put(route('designations.update', data.id), {
-//                 onSuccess: () => { setVisible(false); reset(); },
-//                 preserveScroll: true
-//             });
-//         } else {
-//             // Sinon, création classique (POST)
-//             post(route('designations.store'), {
-//                 onSuccess: () => { setVisible(false); reset(); },
-//                 preserveScroll: true
-//             });
-//         }
-//     };
-
-//     // Nouveau bouton "Ajouter" pour réinitialiser le formulaire
-//     const openNew = () => {
-//         reset();
-//         setVisible(true);
-//     };
-
-//     // Helper pour mettre à jour les membres dans l'état local
-//     const onMemberChange = (labId, roleId, selectedIds) => {
-//         const currentAffectations = { ...data.affectations };
-
-//         if (!currentAffectations[labId]) {
-//             currentAffectations[labId] = [];
-//         }
-
-//         const roleIndex = currentAffectations[labId].findIndex(r => r.role_id === roleId);
-
-//         if (roleIndex > -1) {
-//             currentAffectations[labId][roleIndex].membres = selectedIds;
-//         } else {
-//             currentAffectations[labId].push({
-//                 role_id: roleId,
-//                 membres: selectedIds
-//             });
-//         }
-
-//         setData('affectations', currentAffectations);
-//     };
-
-//     return (
-//         <Layout>
-//             <Toast ref={toast} />
-//             <div className="card">
-//                 <div className="flex justify-content-between mb-4">
-//                     <h3>Désignations de la Semaine</h3>
-//                     <Button
-//                         label="Nouvelle Désignation"
-//                         icon="pi pi-plus"
-//                         severity="success"
-//                         onClick={openNew} // <--- Appel de la fonction pour réinitialiser et ouvrir
-//                     />
-//                 </div>
-
-//                 <DataTable value={designations} responsiveLayout="scroll">
-//                     <Column field="libelle" header="Libellé" />
-//                     <Column field="departement.nom" header="Département" />
-//                     {/* C'EST ICI QU'ON APPELLE editDesignation */}
-//                     <Column
-//                         header="Actions"
-//                         body={(rowData) => {
-//                             // Si rowData n'a pas d'ID, on n'affiche rien (ligne fantôme)
-//                             if (!rowData?.id) return null;
-
-//                             return (
-//                                 <div className="flex gap-2">
-//                                     <Button
-//                                         icon="pi pi-pencil"
-//                                         className="p-button-rounded p-button-text p-button-info"
-//                                         onClick={() => editDesignation(rowData)}
-//                                         label='modifer la semaine'
-//                                     />
-//                                     <Button
-//                                         icon="pi pi-trash"
-//                                         className="p-button-rounded p-button-text p-button-danger"
-//                                         onClick={() => confirmDelete(rowData)}
-//                                         label='supprimer la semaine'
-//                                     />
-//                                 </div>
-//                             );
-//                         }}
-//                     />
-//                 </DataTable>
-//             </div>
-
-//             <Dialog
-//                 visible={visible}
-//                 style={{ width: '70vw' }}
-//                 header={data.id ? "Modifier la Désignation" : "Nouvelle Désignation"}
-//                 modal
-//                 onHide={() => setVisible(false)}
-//                 footer={(
-//                     <div className="mt-4">
-//                         <Button label="Annuler" icon="pi pi-times" text onClick={() => setVisible(false)} />
-//                         <Button label={data.id ? "Mettre à jour" : "Valider"} icon="pi pi-check" onClick={submit} loading={processing} />
-//                     </div>
-//                 )}
-//             >
-//                 <div className="grid p-fluid">
-//                     <div className="col-12 md:col-4">
-//                         <label className="font-bold">Libellé</label>
-//                         <InputText value={data.semaine_nom} onChange={(e) => setData('libelle', e.target.value)} placeholder="Ex: Semaine du 15 Mai" />
-//                     </div>
-//                     <div className="col-12 md:col-4">
-//                         <label className="font-bold">Département</label>
-//                         <Dropdown value={data.departement_id} options={departements} optionLabel="nom" optionValue="id" onChange={(e) => setData('departement_id', e.value)} />
-//                     </div>
-//                     <div className="col-12 md:col-4">
-//                         <label className="font-bold">Sous-Département</label>
-//                         <Dropdown value={data.sous_departement_id} options={filteredSousDepts} optionLabel="nom" optionValue="id" onChange={(e) => setData('sous_departement_id', e.value)} />
-//                     </div>
-//                 </div>
-
-//                 {activeLabs.length > 0 && (
-//                     <div className="mt-4">
-//                         <h5>Configuration par Laboratoire</h5>
-//                         <TabView>
-//                             {activeLabs.map((lab) => (
-//                                 <TabPanel key={lab.id} header={lab.nom}>
-//                                     {rolesTache.map((role) => (
-//                                         <div key={role.id} className="field mb-4">
-//                                             <label className="font-bold block mb-2">{role.libelle}</label>
-//                                             <MultiSelect
-//                                                 value={data.affectations[lab.id]?.find(r => r.role_id === role.id)?.membres || []}
-//                                                 options={membres}
-//                                                 optionLabel="nom_complet" // Assurez-vous d'avoir cet accessor dans votre modèle Membre
-//                                                 optionValue="id"
-//                                                 onChange={(e) => onMemberChange(lab.id, role.id, e.value)}
-//                                                 placeholder="Choisir les membres"
-//                                                 display="chip"
-//                                                 filter
-//                                                 className="w-full"
-//                                             />
-//                                         </div>
-//                                     ))}
-//                                 </TabPanel>
-//                             ))}
-//                         </TabView>
-//                     </div>
-//                 )}
-//             </Dialog>
-//         </Layout>
-//     );
-// };
 
 export default DesignationsPage;

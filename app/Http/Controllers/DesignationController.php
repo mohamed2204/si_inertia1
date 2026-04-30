@@ -18,27 +18,26 @@ class DesignationController extends Controller
     {
         $data = Inertia::render('Designations/Index', [
             // On charge les désignations avec leurs relations pour la DataTable
-            'designations'     => Designation::with(['sousDepartement.departement', 'items.membre'])->latest()->get(),
+            'designations'     => Designation::with([
+                'sousDepartement.departement',
+                'items.membre',
+                'items.laboratoire', // Indispensable pour les badges
+            ])->latest()->get(),
 
             // Données pour les formulaires (Dropdowns et MultiSelect)
             'departements'     => Departement::all(),
+
             'sousDepartements' => SousDepartement::all(),
+
             'laboratoires'     => Laboratoire::with(['labRequis' => function ($query) {
                 $query->orderBy('ordre', 'asc'); // Force l'ordre au cas où
             }, 'labRequis.roleTache'])->get(),
-                                                 //'membres'          => User::select('id', DB::raw("name as nom_complet"))->get(), // Ajustez selon votre table
+            
+            //'membres'          => User::select('id', DB::raw("name as nom_complet"))->get(), // Ajustez selon votre table
             'membres'          => Membre::all(), // Liste pour le MultiSelect
         ]);
         // dd($data);
         return $data;
-
-        // return Inertia::render('Designations/Index', [
-        //     'designations' => Designation::with(['items.membres', 'sousDepartement'])->get(),
-        //     'departements' => Departement::all(),
-        //     'laboratoires' => Laboratoire::all(),
-        //     'membres'      => Membre::all(), // Liste pour le MultiSelect
-        //     // ... autres données nécessaires
-        // ]);
     }
 
     public function store(Request $request)
@@ -98,8 +97,8 @@ class DesignationController extends Controller
                             $designation->items()->create([
                                 'laboratoire_id' => $labId,
                                 'role_tache_id'  => $roleItem['role_id'],
-                                'membre_id'      => $membreId, // On fournit l'ID ici
-                                'date_effective'  => $dateDebut, // Ou une autre logique pour la date effective
+                                'membre_id'      => $membreId,  // On fournit l'ID ici
+                                'date_effective' => $dateDebut, // Ou une autre logique pour la date effective
                             ]);
                         }
                         // 4. Attacher les membres dans la table pivot
