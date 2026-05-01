@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
-import { Dropdown } from 'primereact/dropdown';
-import { Button } from 'primereact/button';
-import { Card } from 'primereact/card';
-import { Message } from 'primereact/message';
-import RequisRepeater from './RequisRepeater';
-import Layout from '@/Layouts/layout'; // Ajustez selon votre projet
-import { route } from 'ziggy-js';
+import React, { useState, useEffect } from "react";
+import { useForm, usePage } from "@inertiajs/react";
+import { Dropdown } from "primereact/dropdown";
+import { Button } from "primereact/button";
+import { Card } from "primereact/card";
+import { Message } from "primereact/message";
+import RequisRepeater from "./RequisRepeater";
+import Layout from "@/Layouts/layout"; // Ajustez selon votre projet
+import { route } from "ziggy-js";
 
 const RequisConfig = ({ structure, allRequisOptions }) => {
     // structure : Departement -> sous_departements -> laboratoires
 
-
-    console.log('structure', structure);
+    console.log("structure", structure);
 
     // États pour les sélections
     const [selectedDept, setSelectedDept] = useState(null);
@@ -24,40 +23,45 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
 
     const { data, setData, post, processing, recentlySuccessful } = useForm({
         laboratoire_id: null,
-        requis_list: []
+        requis_list: [],
     });
 
     // Cascade 1 : Quand le Département change
     useEffect(() => {
         if (selectedDept) {
-            const dept = structure.find(d => d.id === selectedDept);
+            const dept = structure.find((d) => d.id === selectedDept);
             setAvailableSousDepts(dept ? dept.sous_departements : []);
             setSelectedSousDept(null);
             setAvailableLabs([]);
-            setData('laboratoire_id', null);
+            setData("laboratoire_id", null);
         }
     }, [selectedDept, structure]);
 
     // Cascade 2 : Quand le Sous-Département change
     useEffect(() => {
         if (selectedSousDept) {
-            const sdep = availableSousDepts.find(s => s.id === selectedSousDept);
+            const sdep = availableSousDepts.find(
+                (s) => s.id === selectedSousDept,
+            );
             setAvailableLabs(sdep ? sdep.laboratoires : []);
-            setData('laboratoire_id', null);
+            setData("laboratoire_id", null);
         }
     }, [selectedSousDept, availableSousDepts]);
 
     // Chargement des données du laboratoire sélectionné
     useEffect(() => {
         if (data.laboratoire_id) {
-            const lab = availableLabs.find(l => l.id === data.laboratoire_id);
+            const lab = availableLabs.find((l) => l.id === data.laboratoire_id);
             if (lab && lab.lab_requis) {
-                setData('requis_list', lab.lab_requis.map(r => ({
-                    id: `db-${r.id}`,
-                    role_tache_id: r.role_tache_id,
-                    nombre_requis: r.nombre_requis,
-                    section: r.section
-                })));
+                setData(
+                    "requis_list",
+                    lab.lab_requis.map((r) => ({
+                        id: `db-${r.id}`,
+                        role_tache_id: r.role_tache_id,
+                        nombre_requis: r.nombre_requis,
+                        section: r.section,
+                    })),
+                );
             }
         }
     }, [data.laboratoire_id]);
@@ -74,29 +78,53 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
     //     });
     // };
 
+    // const handleSubmit = (e) => {
+    //     e.preventDefault();
+
+    //     if (!data.laboratoire_id) {
+    //         // Optionnel : ajouter une notification d'erreur ici
+    //         return;
+    //     }
+
+    //     /**
+    //      * Utilisation de la route définie dans votre contrôleur
+    //      * @cite 10: post(route('laboratoires.requis.sync', data.laboratoire_id));
+    //      */
+    //     post(route('laboratoires.requis.sync', data.laboratoire_id), {
+    //         onSuccess: () => {
+    //             // Logique additionnelle après succès si nécessaire
+    //         },
+    //     });
+
+    // };
+
+    // RequisConfig.jsx
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (!data.laboratoire_id) {
-            // Optionnel : ajouter une notification d'erreur ici
-            return;
-        }
+        if (!data.laboratoire_id) return;
 
-        /**
-         * Utilisation de la route définie dans votre contrôleur
-         * @cite 10: post(route('laboratoires.requis.sync', data.laboratoire_id));
-         */
-        post(route('laboratoires.requis.sync', data.laboratoire_id), {
-            onSuccess: () => {
-                // Logique additionnelle après succès si nécessaire
+        // Utilisation d'un objet pour nommer explicitement le paramètre attendu {laboratoire}
+        post(
+            route("laboratoires.requis.sync", {
+                laboratoire: data.laboratoire_id,
+            }),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Message de succès
+                },
             },
-        });
+        );
     };
     return (
         <Layout>
-            <div className="p-6 max-w-4xl mx-auto">
-                <Card title="Configuration des Requis par Laboratoire" className="mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="max-w-4xl p-6 mx-auto">
+                <Card
+                    title="Configuration des Requis par Laboratoire"
+                    className="mb-4"
+                >
+                    <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
                         {/* Sélection Département */}
                         <div className="flex flex-col gap-2">
                             <label className="font-bold">Département</label>
@@ -104,7 +132,11 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
                                 value={selectedDept}
                                 options={structure || []} // Sécurité si structure est null
                                 onChange={(e) => setSelectedDept(e.value)}
-                                optionLabel={structure?.[0]?.name !== undefined ? "name" : "nom"} // Auto-détection
+                                optionLabel={
+                                    structure?.[0]?.name !== undefined
+                                        ? "name"
+                                        : "nom"
+                                } // Auto-détection
                                 optionValue="id"
                                 placeholder="Choisir un département"
                                 filter
@@ -113,7 +145,9 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
 
                         {/* Sélection Sous-Département */}
                         <div className="flex flex-col gap-2">
-                            <label className="font-bold">Sous-Département</label>
+                            <label className="font-bold">
+                                Sous-Département
+                            </label>
                             <Dropdown
                                 value={selectedSousDept}
                                 options={availableSousDepts}
@@ -132,7 +166,9 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
                             <Dropdown
                                 value={data.laboratoire_id}
                                 options={availableLabs}
-                                onChange={(e) => setData('laboratoire_id', e.value)}
+                                onChange={(e) =>
+                                    setData("laboratoire_id", e.value)
+                                }
                                 optionLabel="nom"
                                 optionValue="id"
                                 placeholder="Choisir un labo"
@@ -150,11 +186,11 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
                                 allRequisOptions={allRequisOptions}
                             />
 
-                            <pre className="text-xs bg-gray-100 p-2">
+                            <pre className="p-2 text-xs bg-gray-100">
                                 {JSON.stringify(data.requis_list, null, 2)}
                             </pre>
 
-                            <div className="mt-6 flex items-center gap-4">
+                            <div className="flex items-center gap-4 mt-6">
                                 <Button
                                     label="Enregistrer l'ordre et les requis"
                                     icon="pi pi-save"
@@ -163,14 +199,20 @@ const RequisConfig = ({ structure, allRequisOptions }) => {
                                     className="p-button-primary"
                                 />
                                 {recentlySuccessful && (
-                                    <Message severity="success" text="Enregistré avec succès" />
+                                    <Message
+                                        severity="success"
+                                        text="Enregistré avec succès"
+                                    />
                                 )}
                             </div>
                         </form>
                     ) : (
-                        <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed">
-                            <i className="pi pi-info-circle text-2xl mb-2 text-blue-500"></i>
-                            <p>Veuillez sélectionner un laboratoire pour configurer ses requis.</p>
+                        <div className="p-8 text-center border-2 border-dashed rounded-lg bg-gray-50">
+                            <i className="mb-2 text-2xl text-blue-500 pi pi-info-circle"></i>
+                            <p>
+                                Veuillez sélectionner un laboratoire pour
+                                configurer ses requis.
+                            </p>
                         </div>
                     )}
                 </Card>

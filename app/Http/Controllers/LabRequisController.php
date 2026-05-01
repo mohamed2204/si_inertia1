@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
@@ -8,6 +9,7 @@ use App\Models\LabRequis;
 /**
  * @cite 1: L'utilisateur utilise PostgreSQL pour son projet school-management2.
  */
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -15,10 +17,10 @@ use Inertia\Inertia;
 class LabRequisController extends Controller
 {
 
-/**
- * Retourne la liste complète des requis disponibles.
- * Cette fonction est appelée par votre route 'api.requis.list'.
- */
+    /**
+     * Retourne la liste complète des requis disponibles.
+     * Cette fonction est appelée par votre route 'api.requis.list'.
+     */
     public function list()
     {
         // On récupère uniquement l'ID et le Nom pour optimiser la charge JSON sur PostgreSQL
@@ -58,7 +60,7 @@ class LabRequisController extends Controller
             'allRequisOptions' => DB::table('role_taches')->select('id', 'libelle as nom')->get(),
         ]);
     }
-   
+
 
     /**
      * Synchronise les requis d'un laboratoire (méthode appelée par le Repeater).
@@ -67,7 +69,7 @@ class LabRequisController extends Controller
     {
         // Validation : Le labo appartient-il à un sous-dept autorisé pour l'utilisateur ?
 
-        dd($request->requis_list);
+        //dd($request->requis_list);
 
         $userGroup    = auth()->user()->groups()->first();
         $isAuthorized = DB::table('group_sous_departement')
@@ -109,7 +111,6 @@ class LabRequisController extends Controller
 
             DB::commit();
             return back()->with('success', 'Configuration mise à jour.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Erreur : ' . $e->getMessage());
