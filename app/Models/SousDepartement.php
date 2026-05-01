@@ -29,6 +29,11 @@ class SousDepartement extends Model
         return $this->belongsToMany(Group::class, 'group_sous_departement');
     }
 
+    public function laboratoires(): HasMany
+    {
+        return $this->hasMany(Laboratoire::class);
+    }
+    
     protected static function boot(): void
     {
         parent::boot();

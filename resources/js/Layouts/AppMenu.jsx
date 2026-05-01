@@ -46,8 +46,13 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-cog', 
                     to: '/designations', 
                     // visible: hasPermission('view_users')
+                },
+                {   
+                    label: 'Configuration des Requis', 
+                    icon: 'pi pi-fw pi-cog', 
+                    to: '/admin/laboratoires/requis', 
+                    // visible: hasPermission('view_users')
                 }
-
             ]
         },
         {
