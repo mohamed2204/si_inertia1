@@ -76,7 +76,7 @@ class DesignationController extends Controller
                 'sous_departement_id' => $request->sous_departement_id,
                 'createur_id'         => auth()->id(),
                 // 2. REMPLIR LA DATE AUTOMATIQUEMENT SI ELLE MANQUE
-                'date_debut'          => $request->date_debut ?? now(),
+                'date_debut'          => $dateDebut ?? now(),
                 'date_fin'            => $dateFin, // Toujours calculée à partir de la date de début
                 'statut'              => $request->statut ?? 'Brouillon',
             ])->save();
