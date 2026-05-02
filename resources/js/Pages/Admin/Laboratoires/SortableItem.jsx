@@ -7,7 +7,7 @@ import { Button } from 'primereact/button';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 
-export function SortableItem({ id, item, availableRequis, updateItem, removeItem }) {
+export function SortableItem({ id, item, availableRequis, updateItem, removeItem, sectionTypes }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
     const style = {
@@ -52,19 +52,32 @@ export function SortableItem({ id, item, availableRequis, updateItem, removeItem
                 </div>
 
                 {/* Input pour la section */}
-                <div className="w-40">
+                {/* Dropdown pour la section au lieu de InputText */}
+                <div className="w-48">
+                    <Dropdown
+                        value={item.section || ''}
+                        options={sectionTypes}
+                        onChange={(e) => updateItem(id, 'section', e.value)}
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Choisir Section"
+                        className="w-full"
+                    />
+                </div>
+                {/* <div className="w-40">
                     <InputText
                         value={item.section || ''}
+                        options={sectionTypes} // Reçu en props depuis RequisConfig -> RequisRepeater
                         onChange={(e) => updateItem(id, 'section', e.target.value)}
                         placeholder="Section"
                         className="w-full"
                     />
-                </div>
+                </div> */}
             </div>
 
             {/* Bouton supprimer */}
-            <Button 
-                icon={<Trash2 size={18} />} 
+            <Button
+                icon={<Trash2 size={18} />}
                 className="p-button-danger p-button-text p-button-rounded"
                 onClick={() => removeItem(id)}
                 tooltip="Supprimer"

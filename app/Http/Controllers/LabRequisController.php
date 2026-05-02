@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
@@ -58,9 +57,14 @@ class LabRequisController extends Controller
         return Inertia::render('Admin/Laboratoires/RequisConfig', [
             'structure'        => $structure,
             'allRequisOptions' => DB::table('role_taches')->select('id', 'libelle as nom')->get(),
+            'sectionTypes'     => [
+                ['label' => 'Jour', 'value' => 'jour'],
+                // ['label' => 'Garde', 'value' => 'garde'],
+                ['label' => 'Responsable', 'value' => 'responsable'],
+                // ['label' => 'Nuit', 'value' => 'nuit'],
+            ],
         ]);
     }
-
 
     /**
      * Synchronise les requis d'un laboratoire (méthode appelée par le Repeater).
@@ -71,14 +75,25 @@ class LabRequisController extends Controller
 
         //dd($request->requis_list);
 
-        $userGroup    = auth()->user()->groups()->first();
-        $isAuthorized = DB::table('group_sous_departement')
-            ->where('group_id', $userGroup->id)
-            ->where('sous_departement_id', $laboratoire->sous_departement_id)
-            ->exists();
+        // 1. Vérification prioritaire : si l'utilisateur est admin, on ignore la suite
+        if (auth()->user()->hasRole('admin')) {
+            // L'admin passe directement
+        } else {
+            // 2. Pour les autres, on vérifie l'appartenance au groupe
+            $userGroup = auth()->user()->groups()->first();
 
-        if (! $isAuthorized) {
-            return back()->with('error', 'Accès non autorisé à ce laboratoire.');
+            if (! $userGroup) {
+                return back()->with('error', 'Vous n\'appartenez à aucun groupe autorisé.');
+            }
+
+            $isAuthorized = DB::table('group_sous_departement')
+                ->where('group_id', $userGroup->id)
+                ->where('sous_departement_id', $laboratoire->sous_departement_id)
+                ->exists();
+
+            if (! $isAuthorized) {
+                return back()->with('error', 'Accès non autorisé à ce laboratoire.');
+            }
         }
 
         $request->validate([

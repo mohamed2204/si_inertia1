@@ -4,29 +4,43 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { Button } from 'primereact/button';
 import { SortableItem } from './SortableItem';
 
-const RequisRepeater = ({ data, setData, allRequisOptions }) => {
-    
+const RequisRepeater = ({ data, setData, allRequisOptions, sectionTypes }) => {
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     // Ajouter une nouvelle ligne (Requis)
-    const addRequis = () => {
+    const addRequis = (e) => {
+
+        if (e) e.preventDefault(); // Sécurité supplémentaire
+
         const newItem = {
-            id: `new-${Date.now()}`, // ID temporaire unique pour le frontend
-            requis_id: null,
+            id: `new-${Date.now()}`,
+            role_tache_id: null, // Assurez-vous que le nom correspond à votre backend (PostgreSQL)
+            nombre_requis: 1,
+            section: 'jour', // Valeur par défaut basée sur vos types backend
             ordre: data.requis_list.length
-        };
+        }
         setData('requis_list', [...data.requis_list, newItem]);
     };
 
     // Mettre à jour une ligne spécifique
+    // const updateItem = (id, field, value) => {
+    //     const newList = data.requis_list.map(item => 
+    //         item.id === id ? { ...item, [field]: value } : item
+    //     );
+    //     setData('requis_list', newList);
+    // };
+
     const updateItem = (id, field, value) => {
-        const newList = data.requis_list.map(item => 
-            item.id === id ? { ...item, [field]: value } : item
-        );
-        setData('requis_list', newList);
+        setData(prevData => ({
+            ...prevData,
+            requis_list: prevData.requis_list.map(item =>
+                item.id === id ? { ...item, [field]: value } : item
+            )
+        }));
     };
 
     // Supprimer une ligne
@@ -40,9 +54,9 @@ const RequisRepeater = ({ data, setData, allRequisOptions }) => {
         if (active.id !== over.id) {
             const oldIndex = data.requis_list.findIndex(i => i.id === active.id);
             const newIndex = data.requis_list.findIndex(i => i.id === over.id);
-            
+
             const newArray = arrayMove(data.requis_list, oldIndex, newIndex);
-            
+
             // Mise à jour de la propriété 'ordre' basée sur le nouvel index
             const orderedArray = newArray.map((item, index) => ({
                 ...item,
@@ -67,6 +81,7 @@ const RequisRepeater = ({ data, setData, allRequisOptions }) => {
                                 key={item.id}
                                 id={item.id}
                                 item={item}
+                                sectionTypes={sectionTypes} // <--- Important
                                 availableRequis={allRequisOptions}
                                 updateItem={updateItem}
                                 removeItem={removeItem}
@@ -84,6 +99,7 @@ const RequisRepeater = ({ data, setData, allRequisOptions }) => {
             )}
 
             <Button
+                type="button" // <--- Crucial pour éviter le rechargement de la page
                 label="Ajouter un requis"
                 icon="pi pi-plus"
                 onClick={addRequis}
