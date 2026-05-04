@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationController;
+use App\Http\Controllers\DesignationPageController;
 use App\Http\Controllers\LabRequisController;
 use App\Models\Membre;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,17 @@ Route::middleware(['auth'])->group(function () {
     // Si vous prévoyez de gérer l'édition et la suppression plus tard :
     Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
     Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
+
+
+    Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.index');
+    Route::post('/designationsgrille', [DesignationController::class, 'store'])->name('designations.store');
+
+    // Si vous prévoyez de gérer l'édition et la suppression plus tard :
+    Route::put('/designationsgrille/{designation}', [DesignationPageController::class, 'update'])->name('designations.update');
+    Route::delete('/designationsgrille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.destroy');
+
+
+
 
     Route::get('/api/membres-disponibles', function () {
         // On ne récupère que les colonnes nécessaires pour alléger le JSON
