@@ -56,59 +56,60 @@ const DesignationManager = ({ sousDepartements, membres }) => {
 
                     {/* ACCORDEON DES LABORATOIRES */}
                     <Accordion multiple activeIndex={[0]}>
-                      {/* 1. Boucle sur les laboratoires */}
-{sd.laboratoires.map((lab) => (
-    <AccordionTab key={lab.id} header={lab.nom}>
-        
-        <div className="grid mt-2">
-            {/* 2. Boucle sur config_jours : C'EST ICI QUE "conf" EST DÉFINI */}
-            {lab.config_jours.map((conf) => (
-                <div key={conf.jour} className="col-12 md:col-6 lg:col-4 p-2">
-                    <div className="border-1 surface-border border-round shadow-1 bg-white h-full">
-                        
-                        {/* Header de la carte du jour */}
-                        <div className="p-3 surface-100 border-bottom-1 surface-border border-top-round">
-                            <span className="text-900 font-bold uppercase text-xs tracking-wider">
-                                {conf.jour_label}
-                            </span>
-                        </div>
+                        {/* 1. Boucle sur les laboratoires */}
+                        {sd.laboratoires.map((lab) => (
+                            <AccordionTab key={lab.id} header={lab.nom}>
 
-                        {/* Corps de la carte */}
-                        <div className="p-3">
-                            <div className="grid">
-                                {/* 3. Boucle sur les détails du jour */}
-                                {conf.details.map((detail, idx) => (
-                                    <div key={idx} className="col-12 mb-2">
-                                        <label className="text-xs font-semibold block mb-1 text-500 uppercase">
-                                            {detail.role}
-                                        </label>
+                                <div className="grid mt-2">
+                                    {/* 2. Boucle sur config_jours : C'EST ICI QUE "conf" EST DÉFINI */}
+                                    {lab.config_jours.map((conf) => (
+                                        <div key={conf.jour} className="col-12 md:col-6 lg:col-4 p-2">
+                                            <div className="border-1 surface-border border-round shadow-1 bg-white h-full">
 
-                                        {Array.from({ length: detail.nb || 1 }).map((_, subIdx) => {
-                                            const inputKey = `${detail.role}_${subIdx}`;
-                                            return (
-                                                <Dropdown
-                                                    key={inputKey}
-                                                    value={data.designations[lab.id]?.[conf.jour]?.[inputKey]}
-                                                    options={membres}
-                                                    optionLabel="nom"
-                                                    optionValue="id"
-                                                    placeholder={`Sélectionner pour ${detail.role}`}
-                                                    className="w-full p-inputtext-sm mb-2"
-                                                    onChange={(e) => handleMemberChange(lab.id, conf.jour, inputKey, e.value)}
-                                                    filter
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    </AccordionTab>
-))}
+                                                {/* Header de la carte du jour */}
+                                                <div className="p-3 surface-100 border-bottom-1 surface-border border-top-round">
+                                                    <span className="text-900 font-bold uppercase text-xs tracking-wider">
+                                                        {conf.jour_label}
+                                                    </span>
+                                                </div>
+
+                                                {/* Corps de la carte */}
+                                                <div className="p-3">
+                                                    <div className="grid">
+                                                        {/* 3. Boucle sur les détails du jour */}
+                                                        {conf.details.map((detail, idx) => (
+                                                            <div key={idx} className="col-12 mb-2">
+                                                                <label className="text-xs font-semibold block mb-1 text-500 uppercase">
+                                                                    {detail.role}
+                                                                </label>
+
+                                                                {Array.from({ length: detail.nb || 1 }).map((_, subIdx) => {
+                                                                    const inputKey = `${detail.role}_${subIdx}`;
+                                                                    return (
+                                                                        <Dropdown
+                                                                            key={inputKey}
+                                                                            value={data.designations[lab.id]?.[conf.jour]?.[inputKey]}
+                                                                            options={membres}
+                                                                            optionLabel="nom"
+                                                                            optionValue="id"
+                                                                            placeholder={`Sélectionner pour ${detail.role}`}
+                                                                            className="w-full p-inputtext-sm mb-2"
+                                                                            onChange={(e) => handleMemberChange(lab.id, conf.jour, inputKey, e.value)}
+                                                                            filter
+                                                                        />
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                            </AccordionTab>
+                        ))}
                     </Accordion>
                 </div>
             ))}
