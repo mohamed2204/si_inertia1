@@ -14,32 +14,83 @@ use Inertia\Inertia;
 class DesignationController extends Controller
 {
     // Appelé par la route GET
+    // public function index()
+    // {
+    //     $data = Inertia::render('Designations/Index', [
+    //         // On charge les désignations avec leurs relations pour la DataTable
+    //         'designations'     => Designation::with([
+    //             'sousDepartement.departement',
+    //             'items.membre',
+    //             'items.laboratoire', // Indispensable pour les badges
+    //         ])->latest()->get(),
+
+    //         // Données pour les formulaires (Dropdowns et MultiSelect)
+    //         'departements'     => Departement::all(),
+
+    //         'sousDepartements' => SousDepartement::all(),
+
+    //         'laboratoires'     => Laboratoire::with(['labRequis' => function ($query) {
+    //             $query->orderBy('ordre', 'asc'); // Force l'ordre au cas où
+    //         }, 'labRequis.roleTache'])->get(),
+
+    //         //'membres'          => User::select('id', DB::raw("name as nom_complet"))->get(), // Ajustez selon votre table
+    //         'membres'          => Membre::all(), // Liste pour le MultiSelect
+    //     ]);
+    //     // dd($data);
+    //     return $data;
+    // }
+    // public function index()
+    // {
+    //     return Inertia::render('Designations/Index', [
+    //         // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
+    //         'departements' => Departement::with([
+    //             'sousDepartements.laboratoires.config_jours.requis',
+    //         ])->get(),
+
+    //         'membres'      => Membre::select('id', 'nom')
+    //             ->orderBy('nom')
+    //             ->get(),
+
+    //         'designations' => Designation::with([
+    //             'sousDepartement.departement',
+    //             // On adapte aussi le chargement de l'historique si nécessaire
+    //             'items.laboratoire',
+    //             'items.membre',
+    //         ])
+    //             ->latest()
+    //             ->paginate(10)
+    //             ->withQueryString(),
+    //     ]);
+    // }
+
     public function index()
-    {
-        $data = Inertia::render('Designations/Index', [
-            // On charge les désignations avec leurs relations pour la DataTable
-            'designations'     => Designation::with([
-                'sousDepartement.departement',
-                'items.membre',
-                'items.laboratoire', // Indispensable pour les badges
-            ])->latest()->get(),
+{
+    return Inertia::render('Designations/Index', [
+        // 1. Liste des départements pour le premier Dropdown
+        'departements' => Departement::select('id', 'nom')->get(),
 
-            // Données pour les formulaires (Dropdowns et MultiSelect)
-            'departements'     => Departement::all(),
+        // 2. Liste à plat des sous-départements pour filteredSousDepts
+        'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
 
-            'sousDepartements' => SousDepartement::all(),
+        // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
+        'laboratoires' => Laboratoire::with(['config_jours.requis'])
+            ->select('id', 'nom', 'sous_departement_id')
+            ->get(),
 
-            'laboratoires'     => Laboratoire::with(['labRequis' => function ($query) {
-                $query->orderBy('ordre', 'asc'); // Force l'ordre au cas où
-            }, 'labRequis.roleTache'])->get(),
-            
-            //'membres'          => User::select('id', DB::raw("name as nom_complet"))->get(), // Ajustez selon votre table
-            'membres'          => Membre::all(), // Liste pour le MultiSelect
-        ]);
-        // dd($data);
-        return $data;
-    }
+        'membres' => Membre::select('id', 'nom')
+            ->orderBy('nom')
+            ->get(),
 
+        'designations' => Designation::with([
+            'sousDepartement.departement',
+            'items.laboratoire',
+            'items.membre',
+        ])
+            ->latest()
+            ->paginate(10)
+            ->withQueryString(),
+    ]);
+}
     public function store(Request $request)
     {
         return $this->saveDesignation($request);

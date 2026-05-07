@@ -3,7 +3,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Departement;
 use App\Models\Designation;
+use App\Models\Laboratoire;
 use App\Models\Membre;
+use App\Models\SousDepartement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -29,104 +31,85 @@ class DesignationPageController extends Controller
     //     return $dataReturned;
     // }
 
+    // public function index()
+    // {
+    //     return Inertia::render('Designations/DesignationsPage', [
+    //         // Chargement des départements avec leurs sous-départements et labos rattachés
+    //         'departements' => Departement::with([
+    //             'sousDepartements.laboratoires.labRequis.roleTache',
+    //         ])->get(),
+
+    //         // Liste simple pour les Dropdowns de sélection
+    //         'membres'      => Membre::select('id', 'nom')->orderBy('nom')->get(),
+
+    //         // Historique des désignations existantes (si besoin d'affichage)
+    //         'designations' => Designation::with([
+    //             'sousDepartement.departement',
+    //             'items.laboratoire',
+    //             'items.membre',
+    //         ])->latest()->get(),
+    //     ]);
+    // }
+
     public function index()
-    {
-        return Inertia::render('Designations/DesignationsPage', [
-            // Chargement des départements avec leurs sous-départements et labos rattachés
-            'departements' => Departement::with([
-                'sousDepartements.laboratoires.labRequis.roleTache',
-            ])->get(),
+{
+    return Inertia::render('Designations/DesignationsPage', [
+        // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
+        'departements' => Departement::with([
+            'sousDepartements.laboratoires.config_jours.requis'
+        ])->get(),
 
-            // Liste simple pour les Dropdowns de sélection
-            'membres'      => Membre::select('id', 'nom')->orderBy('nom')->get(),
+        'membres' => Membre::select('id', 'nom')
+            ->orderBy('nom')
+            ->get(),
 
-            // Historique des désignations existantes (si besoin d'affichage)
-            'designations' => Designation::with([
-                'sousDepartement.departement',
-                'items.laboratoire',
-                'items.membre',
-            ])->latest()->get(),
-        ]);
-    }
-
+        'designations' => Designation::with([
+            'sousDepartement.departement',
+            // On adapte aussi le chargement de l'historique si nécessaire
+            'items.laboratoire',
+            'items.membre',
+        ])
+        ->latest()
+        ->paginate(10)
+        ->withQueryString(),
+    ]);
+}
     /**
      * Enregistre une nouvelle planification
      */
 
     public function store(Request $request)
     {
-        $designation = Designation::create([
-            'sous_departement_id' => $request->sous_departement_id,
-            'date_debut'          => $request->date_debut,
-            // ...
-        ]);
+        $designations = $request->input('designations');
 
-        // Enregistrement des items de la matrice
-        foreach ($request->designations as $labId => $jours) {
-            foreach ($jours as $jour => $membresArray) {
-                foreach ($membresArray as $index => $membreId) {
-                    if ($membreId) {
-                        $designation->items()->create([
-                            'laboratoire_id' => $labId,
-                            'membre_id'      => $membreId,
-                            'jour'           => $jour,
-                            'ordre'          => $index + 1,
-                        ]);
+        // On utilise une transaction pour s'assurer que tout est enregistré ou rien du tout
+        DB::transaction(function () use ($designations) {
+
+            foreach ($designations as $labId => $jours) {
+                foreach ($jours as $jour => $postes) {
+                    foreach ($postes as $requisId => $membreId) {
+
+                        // On met à jour ou on crée l'affectation
+                        // Table: designations (id, lab_id, jour, requis_id, membre_id, date_semaine)
+                        Designation::updateOrCreate(
+                            [
+                                'lab_id'       => $labId,
+                                'jour'         => $jour,
+                                'requis_id'    => $requisId,
+                                'date_semaine' => $this->getCurrentWeekDate(), // ex: 2024-10-26
+                            ],
+                            [
+                                'membre_id' => $membreId,
+                            ]
+                        );
                     }
                 }
             }
-        }
+        });
 
-        return redirect()->back()->with('success', 'Désignation enregistrée avec succès !');
+        return redirect()->back()->with('success', 'Planning enregistré avec succès !');
     }
-    // public function store(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'semaine_nom'         => 'required|string|max:255',
-    //         'date_debut'          => 'required|date',
-    //         'sous_departement_id' => 'required|exists:sous_departements,id',
-    //         'labs_data'           => 'required|array',
-    //     ]);
-
-    //     try {
-    //         DB::beginTransaction();
-
-    //         // 1. Création de l'entête de la désignation
-    //         $designation = Designation::create([
-    //             'semaine_nom'         => $validated['semaine_nom'],
-    //             'date_debut'          => $validated['date_debut'],
-    //             'sous_departement_id' => $validated['sous_departement_id'],
-    //             'user_id'             => auth()->id(), // Si vous avez une gestion d'utilisateurs
-    //         ]);
-
-    //         // 2. Enregistrement des items par laboratoire (les onglets)
-    //         foreach ($request->labs_data as $labId => $affectations) {
-    //             foreach ($affectations as $item) {
-    //                 // On n'enregistre que si un membre est sélectionné
-    //                 if (! empty($item['membre_id'])) {
-    //                     DesignationItem::create([
-    //                         'designation_id' => $designation->id,
-    //                         'laboratoire_id' => $labId,
-    //                         'role_tache_id'  => $item['role_id'],
-    //                         'slot'           => $item['slot'], // Pour gérer les quotas multiples
-    //                         'membre_id'      => $item['membre_id'],
-    //                     ]);
-    //                 }
-    //             }
-    //         }
-
-    //         DB::commit();
-    //         return redirect()->back()->with('success', 'Désignation créée avec succès !');
-
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return redirect()->back()->with('error', 'Erreur lors de l\'enregistrement : ' . $e->getMessage());
-    //     }
-    // }
-
-    /**
-     * Prépare les données pour la modification
-     */
+   
     public function edit($id)
     {
         // 1. Récupérer la désignation avec ses items
@@ -152,9 +135,9 @@ class DesignationPageController extends Controller
                                         // ... vos autres props (departements, membres, etc.)
         ]);
     }
-    /**
-     * Met à jour une planification existante
-     */
+/**
+ * Met à jour une planification existante
+ */
     public function update(Request $request, $id)
     {
         $designation = Designation::findOrFail($id);

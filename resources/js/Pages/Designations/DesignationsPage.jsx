@@ -1,205 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/Layouts/layout';
-import DesignationManager from './DesignationManager'; // Le composant précédent
+import { Head, useForm } from '@inertiajs/react';
 import { Dropdown } from 'primereact/dropdown';
+import { Calendar } from 'primereact/calendar';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { Message } from 'primereact/message';
 
-const DesignationsPage = ({ departements, membres }) => {
-    const [selectedDept, setSelectedDept] = useState(null);
-    const [selectedSousDept, setSelectedSousDept] = useState(null);
-    const [filteredSousDepts, setFilteredSousDepts] = useState([]);
+const DesignationsPage = ({ departements, sousDepartements, laboratoires, membres }) => {
+    
+    const { data, setData, post, processing, errors } = useForm({
+        semaine_nom: '',
+        date_debut: null,
+        departement_id: null,
+        sous_departement_id: null,
+        selected_lab_id: null,
+        // Structure : { labId: { jour: { requisId: membreId } } }
+        // On stocke par labId pour ne pas perdre la saisie en changeant de labo
+        all_designations: {} 
+    });
 
-    // Filtrage des sous-départements quand le département change
+    // Optionnel : Générer automatiquement le nom de la semaine quand la date change
     useEffect(() => {
-        if (selectedDept) {
-            const children = departements.find(d => d.id === selectedDept)?.sous_departements || [];
-            setFilteredSousDepts(children);
-            setSelectedSousDept(null); // Reset du sous-dept
+        if (data.date_debut && !data.semaine_nom) {
+            const date = new Date(data.date_debut);
+            const weekNumber = Math.ceil((((date - new Date(date.getFullYear(), 0, 1)) / 8.64e7) + 1) / 7);
+            setData('semaine_nom', `Semaine ${weekNumber} - ${date.getFullYear()}`);
         }
-    }, [selectedDept, departements]);
+    }, [data.date_debut]);
+
+    const currentLab = laboratoires.find(l => l.id === data.selected_lab_id);
+
+    const handleMemberChange = (labId, jour, requisId, membreId) => {
+        const newDesignations = { ...data.all_designations };
+        if (!newDesignations[labId]) newDesignations[labId] = {};
+        if (!newDesignations[labId][jour]) newDesignations[labId][jour] = {};
+        
+        newDesignations[labId][jour][requisId] = membreId;
+        setData('all_designations', newDesignations);
+    };
+
+    const submit = (e) => {
+        e.preventDefault();
+        // On envoie tout le paquet au serveur
+        post(route('designations.store'));
+    };
 
     return (
         <Layout>
-            <div className="card shadow-2 mb-4 p-4 bg-white border-round">
-                <h2 className="mt-0 mb-4 text-900">Nouvelle Désignation</h2>
-                
-                <div className="grid">
-                    <div className="col-12 md:col-6">
-                        <label className="block font-bold mb-2">1. Département</label>
-                        <Dropdown 
-                            value={selectedDept} 
-                            options={departements} 
-                            optionLabel="nom" 
-                            optionValue="id"
-                            placeholder="Sélectionnez un département"
+            <Head title="Nouvelle Désignation" />
+            
+            <div className="card shadow-4 border-round-xl p-4">
+                <h2 className="text-2xl font-bold mb-4 border-bottom-1 surface-border pb-2">
+                    <i className="pi pi-calendar-plus mr-2 text-primary"></i>
+                    Nouvelle Planification Hebdomadaire
+                </h2>
+
+                {/* 1. SECTION CONTEXTE */}
+                <div className="grid mb-4 bg-gray-50 p-3 border-round-lg">
+                    <div className="col-12 md:col-3">
+                        <label className="font-bold block mb-1">Date du Lundi</label>
+                        <Calendar 
+                            value={data.date_debut} 
+                            onChange={e => setData('date_debut', e.value)} 
+                            showIcon 
                             className="w-full"
-                            onChange={(e) => setSelectedDept(e.value)}
-                            filter
+                            placeholder="Choisir le lundi"
+                        />
+                        {errors.date_debut && <small className="p-error">{errors.date_debut}</small>}
+                    </div>
+
+                    <div className="col-12 md:col-3">
+                        <label className="font-bold block mb-1">Nom/Réf Semaine</label>
+                        <InputText 
+                            value={data.semaine_nom} 
+                            onChange={e => setData('semaine_nom', e.target.value)} 
+                            placeholder="ex: Semaine 22 - Mai"
+                        />
+                    </div>
+                    
+                    <div className="col-12 md:col-3">
+                        <label className="font-bold block mb-1">Sous-Département</label>
+                        <Dropdown 
+                            value={data.sous_departement_id} 
+                            options={sousDepartements} 
+                            optionLabel="nom" optionValue="id"
+                            placeholder="Sélectionner..."
+                            onChange={e => setData('sous_departement_id', e.value)} 
                         />
                     </div>
 
-                    <div className="col-12 md:col-6">
-                        <label className="block font-bold mb-2">2. Sous-Département</label>
+                    <div className="col-12 md:col-3">
+                        <label className="font-bold block mb-1 text-primary">LABORATOIRE À TRAVAILLER</label>
                         <Dropdown 
-                            value={selectedSousDept} 
-                            options={filteredSousDepts} 
-                            optionLabel="nom" 
-                            optionValue="id"
-                            placeholder="Sélectionnez un sous-département"
-                            className="w-full"
-                            disabled={!selectedDept}
-                            onChange={(e) => setSelectedSousDept(e.value)}
-                            filter
+                            value={data.selected_lab_id} 
+                            options={laboratoires.filter(l => l.sous_departement_id === data.sous_departement_id)} 
+                            optionLabel="nom" optionValue="id"
+                            placeholder={data.sous_departement_id ? "Choisir le labo" : "Choisir sous-dept d'abord"}
+                            className="p-inputtext-lg shadow-2 border-primary"
+                            disabled={!data.sous_departement_id}
+                            onChange={e => setData('selected_lab_id', e.value)} 
                         />
                     </div>
                 </div>
+
+                {/* 2. ZONE DE TRAVAIL DYNAMIQUE */}
+                {currentLab ? (
+                    <div className="fadein animation-duration-300">
+                        <div className="flex align-items-center justify-content-between mb-4">
+                            <div className="flex align-items-center gap-3">
+                                <i className="pi pi-building text-3xl text-primary"></i>
+                                <h3 className="m-0 uppercase">{currentLab.nom}</h3>
+                            </div>
+                            {errors.all_designations && <Message severity="error" text="Certains postes sont requis" />}
+                        </div>
+
+                        <div className="grid">
+                            {currentLab.config_jours?.map((conf) => (
+                                <div key={conf.jour} className="col-12 md:col-6 lg:col-4 p-2">
+                                    <div className="surface-card border-1 surface-border border-round-xl shadow-1 h-full">
+                                        <div className="p-3 surface-100 font-bold border-bottom-1 surface-border border-top-round-xl uppercase text-xs text-600">
+                                            {conf.jour_label || `Jour ${conf.jour}`}
+                                        </div>
+                                        <div className="p-3">
+                                            {conf.requis?.map((req) => (
+                                                <div key={req.id} className="mb-3">
+                                                    <label className="text-xs font-bold text-500 uppercase block mb-1">
+                                                        {req.libelle}
+                                                    </label>
+                                                    <Dropdown
+                                                        value={data.all_designations[currentLab.id]?.[conf.jour]?.[req.id] || null}
+                                                        options={membres}
+                                                        optionLabel="nom" optionValue="id"
+                                                        placeholder="Sélectionner membre"
+                                                        className="w-full p-inputtext-sm"
+                                                        filter
+                                                        onChange={(e) => handleMemberChange(currentLab.id, conf.jour, req.id, e.value)}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="flex justify-content-end mt-6 pt-4 border-top-1 surface-border">
+                             <Button 
+                                label="Enregistrer la planification" 
+                                icon="pi pi-save" 
+                                className="p-button-lg shadow-4" 
+                                loading={processing}
+                                onClick={submit} 
+                             />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center p-8 border-2 border-dashed border-300 border-round-xl mt-4 bg-gray-50">
+                        <i className="pi pi-arrow-up text-4xl text-300 mb-3"></i>
+                        <p className="text-600 font-italic text-xl">
+                            Sélectionnez un laboratoire dans la liste bleue pour configurer les postes.
+                        </p>
+                    </div>
+                )}
             </div>
-
-            {/* Affichage conditionnel : Uniquement si un sous-département est choisi */}
-            {selectedSousDept ? (
-                <DesignationManager 
-                    // On ne passe que le sous-département sélectionné (dans un tableau pour l'accordéon)
-                    sousDepartements={filteredSousDepts.filter(sd => sd.id === selectedSousDept)}
-                    membres={membres} 
-                />
-            ) : (
-                <div className="p-5 text-center surface-100 border-round border-dashed">
-                    <i className="pi pi-info-circle text-4xl text-400 mb-3"></i>
-                    <p className="text-600">Veuillez sélectionner un sous-département pour configurer les laboratoires.</p>
-                </div>
-            )}
         </Layout>
     );
 };
 
 export default DesignationsPage;
-
-
-// import React, { useState, useRef } from 'react';
-// import Layout from '@/Layouts/layout';
-// import { useForm } from '@inertiajs/react';
-// import { TabView, TabPanel } from 'primereact/tabview';
-// import { Dropdown } from 'primereact/dropdown';
-// import { InputText } from 'primereact/inputtext';
-// import { Button } from 'primereact/button';
-// import { Dialog } from 'primereact/dialog';
-// import { Toast } from 'primereact/toast';
-// import { DataTable } from 'primereact/datatable';
-// import { Column } from 'primereact/column';
-// import { Calendar } from 'primereact/calendar';
-// import { Badge } from 'primereact/badge';
-
-// const DesignationsPage = ({ designations, departements, sousDepartements, laboratoires, membres }) => {
-//     const [visible, setVisible] = useState(false);
-//     const toast = useRef(null);
-
-//     const { data, setData, post, put, processing, reset } = useForm({
-//         id: null,
-//         semaine_nom: '',
-//         departement_id: null,
-//         sous_departement_id: null,
-//         date_debut: null,
-//         // Structure isolée par Labo
-//         labs_data: {} // { labId: [ {role_id: X, slot: Y, membre_id: Z} ] }
-//     });
-
-//     const filteredSousDepts = sousDepartements.filter(sd => sd.departement_id === data.departement_id);
-//     const activeLabs = laboratoires.filter(lab => lab.sous_departement_id === data.sous_departement_id);
-
-//     const handleGridChange = (labId, roleId, slot, membreId) => {
-//         const currentLabsData = { ...data.labs_data };
-//         if (!currentLabsData[labId]) currentLabsData[labId] = [];
-
-//         const index = currentLabsData[labId].findIndex(a => a.role_id === roleId && a.slot === slot);
-
-//         if (index > -1) {
-//             if (membreId) currentLabsData[labId][index].membre_id = membreId;
-//             else currentLabsData[labId].splice(index, 1); // Supprimer si vide
-//         } else if (membreId) {
-//             currentLabsData[labId].push({ role_id: roleId, slot: slot, membre_id: membreId });
-//         }
-
-//         setData('labs_data', currentLabsData);
-//     };
-
-//     const submit = () => {
-//         const action = data.id ? put : post;
-//         const url = data.id ? `/designations/${data.id}` : '/designations';
-
-//         action(url, {
-//             onSuccess: () => {
-//                 setVisible(false);
-//                 reset();
-//                 toast.current.show({ severity: 'success', summary: 'Succès', detail: 'Planning enregistré' });
-//             }
-//         });
-//     };
-
-//     return (
-//         <Layout>
-//             <Toast ref={toast} />
-//             <div className="card">
-//                 <div className="flex justify-content-between mb-4">
-//                     <h3 className="m-0">Gestion des Désignations</h3>
-//                     <Button label="Nouvelle Planification" icon="pi pi-plus" severity="success" onClick={() => { reset(); setVisible(true); }} />
-//                 </div>
-
-//                 <DataTable value={designations} paginator rows={10} responsiveLayout="stack">
-//                     <Column header="Département" body={(row) => row.sous_departement?.departement?.nom} sortable />
-//                     <Column field="semaine_nom" header="Semaine" sortable />
-//                     <Column field="sous_departement.nom" header="Sous-Département" sortable />
-//                     <Column header="Date" body={(row) => new Date(row.date_debut).toLocaleDateString()} sortable />
-//                     <Column header="Actions" body={(row) => (
-//                         <Button icon="pi pi-pencil" className="p-button-text" onClick={() => { /* Logique Edit adaptée au labs_data */ }} />
-//                     )} />
-//                 </DataTable>
-//             </div>
-
-//             <Dialog header="Planification de la Semaine" visible={visible} style={{ width: '85vw' }} onHide={() => setVisible(false)} maximizable>
-//                 <div className="grid p-fluid">
-//                     <div className="col-12 md:col-6">
-//                         <label className="font-bold">Libellé</label>
-//                         <InputText value={data.semaine_nom} onChange={e => setData('semaine_nom', e.target.value)} />
-//                     </div>
-//                     <div className="col-12 md:col-6">
-//                         <label className="font-bold">Date de début</label>
-//                         <Calendar value={data.date_debut} onChange={e => setData('date_debut', e.value)} showIcon dateFormat="dd/mm/yy" />
-//                     </div>
-//                     <div className="col-12 md:col-6 mt-2">
-//                         <label className="font-bold">Département</label>
-//                         <Dropdown value={data.departement_id} options={departements} optionLabel="nom" optionValue="id"
-//                             onChange={e => setData(d => ({ ...d, departement_id: e.value, sous_departement_id: null, labs_data: {} }))} />
-//                     </div>
-//                     <div className="col-12 md:col-6 mt-2">
-//                         <label className="font-bold">Sous-Département</label>
-//                         <Dropdown value={data.sous_departement_id} options={filteredSousDepts} optionLabel="nom" optionValue="id" disabled={!data.departement_id}
-//                             onChange={e => setData(d => ({ ...d, sous_departement_id: e.value, labs_data: {} }))} />
-//                     </div>
-//                 </div>
-
-//                 {activeLabs.length > 0 && (
-//                     <TabView className="mt-4 shadow-2">
-//                         {activeLabs.map(lab => (
-//                             <TabPanel key={lab.id} header={lab.nom} leftIcon="pi pi-building mr-2">
-//                                 <div className="p-3 bg-white">
-//                                     <h4 className="text-primary mb-4 border-bottom-1 pb-2">Configuration des postes : {lab.nom}</h4>
-//                                     <GrilleDesignation
-//                                         lab={lab}
-//                                         membres={membres}
-//                                         affectations={data.labs_data[lab.id] || []}
-//                                         onCellChange={(roleId, slot, membreId) => handleGridChange(lab.id, roleId, slot, membreId)}
-//                                     />
-//                                 </div>
-//                             </TabPanel>
-//                         ))}
-//                     </TabView>
-//                 )}
-
-//                 <div className="flex justify-content-end mt-4">
-//                     <Button label="Valider toutes les désignations" icon="pi pi-save" className="p-button-lg" onClick={submit} loading={processing} />
-//                 </div>
-//             </Dialog>
-//         </Layout>
-//     );
-// };
-
-// export default DesignationsPage;
