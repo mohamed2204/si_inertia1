@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/Layouts/layout';
-import { useForm } from '@inertiajs/react';
+import { useForm, router} from '@inertiajs/react';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { MultiSelect } from 'primereact/multiselect';
 import { Dropdown } from 'primereact/dropdown';
@@ -12,6 +12,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Calendar } from 'primereact/calendar';
 import { Badge } from 'primereact/badge';
+
 
 const Designations = ({
     designations = { data: [] },
@@ -90,8 +91,11 @@ const Designations = ({
     };
 
     const openNew = () => {
-        reset();
-        setVisible(true);
+        // reset();
+        // setVisible(true);
+        //router.get(route('designations.create'));
+        router.get('/designations/create');
+
     };
 
     const submit = () => {

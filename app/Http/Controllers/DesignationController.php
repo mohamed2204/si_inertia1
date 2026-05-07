@@ -64,33 +64,44 @@ class DesignationController extends Controller
     // }
 
     public function index()
-{
-    return Inertia::render('Designations/Index', [
-        // 1. Liste des départements pour le premier Dropdown
-        'departements' => Departement::select('id', 'nom')->get(),
+    {
+        return Inertia::render('Designations/Index', [
+            // 1. Liste des départements pour le premier Dropdown
+            'departements'     => Departement::select('id', 'nom')->get(),
 
-        // 2. Liste à plat des sous-départements pour filteredSousDepts
-        'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
+            // 2. Liste à plat des sous-départements pour filteredSousDepts
+            'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
 
-        // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
-        'laboratoires' => Laboratoire::with(['config_jours.requis'])
-            ->select('id', 'nom', 'sous_departement_id')
-            ->get(),
+            // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
+            'laboratoires'     => Laboratoire::with(['config_jours.requis'])
+                ->select('id', 'nom', 'sous_departement_id')
+                ->get(),
 
-        'membres' => Membre::select('id', 'nom')
-            ->orderBy('nom')
-            ->get(),
+            'membres'          => Membre::select('id', 'nom')
+                ->orderBy('nom')
+                ->get(),
 
-        'designations' => Designation::with([
-            'sousDepartement.departement',
-            'items.laboratoire',
-            'items.membre',
-        ])
-            ->latest()
-            ->paginate(10)
-            ->withQueryString(),
-    ]);
-}
+            'designations'     => Designation::with([
+                'sousDepartement.departement',
+                'items.laboratoire',
+                'items.membre',
+            ])
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Designations/Create', [
+            'departements'     => Departement::all(),
+            'sousDepartements' => SousDepartement::all(),
+            //'laboratoires'     => Laboratoire::with(['config_jours.requis'])->get(),
+            'laboratoires' => Laboratoire::with(['config_jours.requis'])->get(),
+            'membres'          => Membre::orderBy('nom')->get(),
+        ]);
+    }
     public function store(Request $request)
     {
         return $this->saveDesignation($request);

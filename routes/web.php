@@ -22,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Version explicite (recommandée pour mieux contrôler vos URLs)
     Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
+    Route::get('/designations/create', [DesignationController::class, 'create'])->name('designations.create');
     Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
 
     // Si vous prévoyez de gérer l'édition et la suppression plus tard :
