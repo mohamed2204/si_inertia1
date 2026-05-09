@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('laboratoire_configs', function (Blueprint $table) {
             $table->id();
             // Lien vers le laboratoire (Sous-département/Unité)
-            $table->foreignId('laboratoire_id')->constrained()->onDelete('cascade');
+            $table->foreignId('laboratoire_id')->constrained('laboratoires')->onDelete('cascade');
 
             // Identifiant du jour (ex: 'lun', 'mar' ou 1, 2...)
-            $table->string('jour');
+            $table->string('jour_code');
 
             // Label affiché sur la carte (ex: 'Lundi', 'Monday')
-            $table->string('jour_label');
+            $table->string('libelle');
 
             $table->integer('ordre_affichage')->default(0);
             $table->timestamps();

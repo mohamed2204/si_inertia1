@@ -21,21 +21,36 @@ Route::middleware(['auth'])->group(function () {
     })->name('home');
 
     // Version explicite (recommandée pour mieux contrôler vos URLs)
+    // --- Routes Classiques (Gestion Administrative) ---
     Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
     Route::get('/designations/create', [DesignationController::class, 'create'])->name('designations.create');
     Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
-
-    // Si vous prévoyez de gérer l'édition et la suppression plus tard :
     Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
     Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
 
+    // --- Routes de la Grille (Affichage Spécifique) ---
+    // Notez le changement des noms pour éviter les conflits
+    Route::get('/designations-grille', [DesignationPageController::class, 'index'])->name('designations.grille.index');
 
-    Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.index');
-    Route::post('/designationsgrille', [DesignationController::class, 'store'])->name('designations.store');
+    // Si la grille utilise le même store, une seule route suffit.
+    // Si la logique de mise à jour est différente :
+    Route::put('/designations-grille/{designation}', [DesignationPageController::class, 'update'])->name('designations.grille.update');
+    Route::delete('/designations-grille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.grille.destroy');
+    // Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
+    // Route::get('/designations/create', [DesignationController::class, 'create'])->name('designations.create');
+    // Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
 
-    // Si vous prévoyez de gérer l'édition et la suppression plus tard :
-    Route::put('/designationsgrille/{designation}', [DesignationPageController::class, 'update'])->name('designations.update');
-    Route::delete('/designationsgrille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.destroy');
+    // // Si vous prévoyez de gérer l'édition et la suppression plus tard :
+    // Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
+    // Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
+
+
+    // Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.index');
+    // Route::post('/designationsgrille', [DesignationController::class, 'store'])->name('designations.store');
+
+    // // Si vous prévoyez de gérer l'édition et la suppression plus tard :
+    // Route::put('/designationsgrille/{designation}', [DesignationPageController::class, 'update'])->name('designations.update');
+    // Route::delete('/designationsgrille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.destroy');
 
 
 
@@ -50,12 +65,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('lab-requis.index');
 
 
-   
+
     // Route pour enregistrer les requis d'un laboratoire spécifique
     Route::post('/laboratoires/{laboratoire}/requis-sync', [LabRequisController::class, 'sync'])
         ->name('laboratoires.requis.sync');
 
-// Route optionnelle pour récupérer la liste initiale deLabRequisControllerxios)
+    // Route optionnelle pour récupérer la liste initiale deLabRequisControllerxios)
     Route::get('/api/requis-disponibles', [LabRequisController::class, 'list'])
         ->name('api.requis.list');
 
