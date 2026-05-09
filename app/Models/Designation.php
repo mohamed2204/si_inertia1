@@ -29,6 +29,10 @@ class Designation extends Model
         'date_debut' => 'date',
     ];
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(DesignationItem::class, 'designation_id');
+    }
     // LA RELATION MANQUANTE :
     public function sousDepartement(): BelongsTo
     {
@@ -39,10 +43,7 @@ class Designation extends Model
     //     return $this->belongsTo(Laboratoire::class);
     // }
 
-    public function items(): HasMany
-    {
-        return $this->hasMany(DesignationItem::class, 'designation_id');
-    }
+
 
     public function createur(): BelongsTo
     {
@@ -128,6 +129,4 @@ class Designation extends Model
             }
         );
     }
-
-
 }

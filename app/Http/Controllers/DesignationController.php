@@ -1,14 +1,17 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
 use App\Models\Designation;
 use App\Models\Laboratoire;
+use App\Models\LaboratoireConfig;
 use App\Models\Membre;
 use App\Models\SousDepartement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class DesignationController extends Controller
@@ -104,7 +107,82 @@ class DesignationController extends Controller
     }
     public function store(Request $request)
     {
-        return $this->saveDesignation($request);
+        $allDesignations = $request->input('all_designations', []);
+        $semaineNom = $request->input('semaine_nom');
+        $dateDebut = $request->input('date_debut');
+        $sousDeptId = $request->input('sous_departement_id');
+
+        DB::beginTransaction();
+        try {
+            // 1. On assure l'existence de l'en-tête (la semaine)
+            $designation = Designation::updateOrCreate(
+                [
+                    'semaine_nom' => $semaineNom,
+                    'sous_departement_id' => $sousDeptId,
+                ],
+                [
+                    'date_debut' => $dateDebut,
+                    'date_fin' => \Carbon\Carbon::parse($dateDebut)->addDays(7),
+                    'createur_id' => auth()->id(),
+                    'statut' => 'publié',
+                ]
+            );
+
+            // 2. On boucle sur les données reçues
+            foreach ($allDesignations as $labId => $jours) {
+                Log::info("Traitement du laboratoire ID: $labId");
+
+                foreach ($jours as $jourSlug => $requisGroup) {
+                    Log::info("Traitement du jour: $jourSlug pour le laboratoire ID: $labId");
+
+                    // On récupère la config du jour (ven, sam...) pour ce lab
+                    $config = LaboratoireConfig::where('laboratoire_id', $labId)
+                        ->where('jour', $jourSlug)
+                        ->first();
+
+                    if (!$config) continue;
+
+                    foreach ($requisGroup as $requisId => $membreId) {
+                        Log::info("Traitement du poste requis ID: $requisId pour le jour: $jourSlug et laboratoire ID: $labId");
+                        // Si la case est vidée dans l'interface
+                        if (!$membreId) {
+                            $designation->items()
+                                ->where('laboratoire_id', $labId)
+                                ->where('laboratoire_config_id', $config->id)
+                                ->delete();
+                            continue;
+                        }
+
+                        // 3. UpdateOrCreate sur l'item
+                        $designation->items()->updateOrCreate(
+                            [
+                                'laboratoire_id' => $labId,
+                                'laboratoire_config_id' => $config->id,
+                                // Si vous avez plusieurs postes par jour, ajoutez la colonne requis_id ici
+                            ],
+                            [
+                                'membre_id' => $membreId,
+                                'date_effective' => $this->calculerDate($dateDebut, $config->ordre_affichage),
+                            ]
+                        );
+                    }
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', 'Planning global enregistré avec succès.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Calcule la date réelle basée sur le début de semaine et l'ordre (1=Ven, 2=Sam...)
+     */
+    private function calculerDate($dateDebut, $ordre)
+    {
+        return \Carbon\Carbon::parse($dateDebut)->addDays($ordre - 1);
     }
 
     public function update(Request $request, $id)
@@ -182,5 +260,4 @@ class DesignationController extends Controller
 
         return redirect()->back()->with('message', 'Désignation supprimée.');
     }
-
 }

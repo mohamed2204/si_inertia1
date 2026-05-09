@@ -11,11 +11,11 @@ class DesignationItem extends Model
     protected $fillable = [
         'designation_id',
         'laboratoire_id', // <--- C'est maintenant la clé de voûte
-        'role_tache_id',   // <--- C'est lui le remplaçant de tache_id, config_jour_id, etc.
+        'laboratoire_config_id', // <--- Remplace config_jour_id, config_responsable_id, config_remplacant_id
+        //'role_tache_id',   // <--- C'est lui le remplaçant de tache_id, config_jour_id, etc.
         'membre_id',
         'date_effective',
         'observations',
-        // 'laboratoire_id', // Optionnel : on peut le retrouver via la désignation parente
     ];
 
     public function designation(): BelongsTo
@@ -24,9 +24,9 @@ class DesignationItem extends Model
     }
 
     //    public function laboratoire(): BelongsTo
-//    {
-//        return $this->belongsTo(Laboratoire::class);
-//    }
+    //    {
+    //        return $this->belongsTo(Laboratoire::class);
+    //    }
 
     public function membre(): BelongsTo
     {
@@ -36,10 +36,9 @@ class DesignationItem extends Model
     /**
      * La relation unique qui remplace ConfigJour, ConfigResponsable et ConfigRemplacant
      */
-    public function roleTache(): BelongsTo
+    public function configuration()
     {
-        // C'est ici que tout se joue désormais
-        return $this->belongsTo(RoleTache::class, 'role_tache_id');
+        return $this->belongsTo(LaboratoireConfig::class, 'laboratoire_config_id');
     }
 
     public function laboratoire(): BelongsTo
