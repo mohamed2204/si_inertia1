@@ -13,15 +13,9 @@ return new class extends Migration
     {
         Schema::create('laboratoire_configs', function (Blueprint $table) {
             $table->id();
-            // Lien vers le laboratoire (Sous-département/Unité)
-            $table->foreignId('laboratoire_id')->constrained('laboratoires')->onDelete('cascade');
-
-            // Identifiant du jour (ex: 'lun', 'mar' ou 1, 2...)
-            $table->string('jour_code');
-
-            // Label affiché sur la carte (ex: 'Lundi', 'Monday')
-            $table->string('libelle');
-
+            $table->foreignId('laboratoire_id')->constrained()->onDelete('cascade');
+            $table->string('jour'); // <-- Vérifiez que cette ligne est présente
+            $table->string('jour_label');
             $table->integer('ordre_affichage')->default(0);
             $table->timestamps();
         });

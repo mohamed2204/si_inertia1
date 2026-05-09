@@ -11,6 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        //     protected $fillable = [
+        //     'lab_config_id',
+        //     'libelle',
+        //     'ordre',
+        //     'is_obligatoire'
+        // ];
         Schema::create('laboratoire_config_requis', function (Blueprint $table) {
             $table->id();
             // Clé étrangère vers la configuration du jour du labo
