@@ -73,14 +73,22 @@ const CreateDesignation = ({
                 <div className="grid p-3 mb-5 bg-bluegray-50 border-round-xl border-1 border-100">
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">
-                            DATE LUNDI
+                            DATE DEBUT
                         </label>
                         <Calendar
                             value={data.date_debut}
                             onChange={(e) => setData("date_debut", e.value)}
                             showIcon
                             className="w-full"
+                            locale="fr" // Optionnel si configuré globalement
+                            dateFormat="dd/mm/yy" // Pour avoir le format 08/05/2026
                         />
+                        {/* <Calendar
+                            value={data.date_debut}
+                            onChange={(e) => setData("date_debut", e.value)}
+                            showIcon
+                            className="w-full"
+                        /> */}
                     </div>
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">
@@ -185,6 +193,76 @@ const CreateDesignation = ({
 
                                         {/* CORPS DE CARTE DENSE (3 colonnes) */}
                                         <div className="p-3">
+                                            {/* On utilise flex-column pour empiler les lignes proprement */}
+                                            <div className="flex gap-3 flex-column">
+                                                {conf.requis?.map((req) => (
+                                                    <div
+                                                        key={req.id}
+                                                        className="grid p-0 m-0 align-items-center"
+                                                    >
+                                                        {/* Libellé à gauche : prend 4 colonnes sur 12 */}
+                                                        <div className="py-0 col-3">
+                                                            <label
+                                                                className="block text-xs font-semibold uppercase truncate text-500"
+                                                                style={{
+                                                                    textAlign:
+                                                                        "left",
+                                                                }} // Alignement à gauche pour le titre
+                                                                title={
+                                                                    req
+                                                                        .role_tache
+                                                                        ?.libelle ||
+                                                                    req.libelle
+                                                                }
+                                                            >
+                                                                {req.role_tache
+                                                                    ?.libelle ||
+                                                                    req.libelle}{" "}
+                                                                :
+                                                            </label>
+                                                        </div>
+
+                                                        {/* Dropdown à droite : prend 8 colonnes sur 12 */}
+                                                        <div className="py-0 col-9">
+                                                            <Dropdown
+                                                                value={
+                                                                    data
+                                                                        .all_designations[
+                                                                        currentLab
+                                                                            .id
+                                                                    ]?.[
+                                                                        conf
+                                                                            .jour
+                                                                    ]?.[
+                                                                        req.id
+                                                                    ] || null
+                                                                }
+                                                                options={
+                                                                    membres
+                                                                }
+                                                                optionLabel="nom"
+                                                                optionValue="id"
+                                                                placeholder="..."
+                                                                className="w-full text-xs p-inputtext-sm border-round-md"
+                                                                style={{
+                                                                    height: "34px",
+                                                                }}
+                                                                filter
+                                                                onChange={(e) =>
+                                                                    handleMemberChange(
+                                                                        currentLab.id,
+                                                                        conf.jour,
+                                                                        req.id,
+                                                                        e.value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* <div className="p-3">
                                             <div className="grid row-gap-3">
                                                 {conf.requis?.map((req) => (
                                                     <div
@@ -236,7 +314,7 @@ const CreateDesignation = ({
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             ))}

@@ -32,6 +32,57 @@ import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 //     },
 // });
 
+import { addLocale, locale } from "primereact/api";
+
+// Définition de la configuration française
+addLocale("fr", {
+    firstDayOfWeek: 1,
+    dayNames: [
+        "dimanche",
+        "lundi",
+        "mardi",
+        "mercredi",
+        "jeudi",
+        "vendredi",
+        "samedi",
+    ],
+    dayNamesShort: ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"],
+    dayNamesMin: ["D", "L", "M", "M", "J", "V", "S"],
+    monthNames: [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ],
+    monthNamesShort: [
+        "jan",
+        "fév",
+        "mar",
+        "avr",
+        "mai",
+        "jun",
+        "jul",
+        "aoû",
+        "sep",
+        "oct",
+        "nov",
+        "déc",
+    ],
+    today: "Aujourd'hui",
+    clear: "Effacer",
+});
+
+// Activation de la langue par défaut
+locale("fr");
+
 createInertiaApp({
     title: (title) => `${title} - My App`,
     resolve: (name) =>
