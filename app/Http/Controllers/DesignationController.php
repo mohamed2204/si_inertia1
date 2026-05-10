@@ -154,17 +154,36 @@ class DesignationController extends Controller
                         }
 
                         // 3. UpdateOrCreate sur l'item
+                        // On regarde directement la colonne de type dans la table config
+                        if ($config->type_config === 'calendrier') {
+                            // Si c'est du calendrier, on calcule : date_debut + (ordre - 1)
+                            $dateEffective = \Carbon\Carbon::parse($dateDebut)->addDays($config->ordre_affichage - 1);
+                        } else {
+                            // Sinon (type 'fixe'), on garde la date_debut brute
+                            $dateEffective = $dateDebut;
+                        }
+
                         $designation->items()->updateOrCreate(
                             [
                                 'laboratoire_id' => $labId,
-                                'laboratoire_config_id' => $config->id,
-                                // Si vous avez plusieurs postes par jour, ajoutez la colonne requis_id ici
+                                'laboratoire_config_id' => $config->id
                             ],
                             [
                                 'membre_id' => $membreId,
-                                'date_effective' => $this->calculerDate($dateDebut, $config->ordre_affichage),
+                                'date_effective' => $dateEffective
                             ]
                         );
+                        // $designation->items()->updateOrCreate(
+                        //     [
+                        //         'laboratoire_id' => $labId,
+                        //         'laboratoire_config_id' => $config->id,
+                        //         // Si vous avez plusieurs postes par jour, ajoutez la colonne requis_id ici
+                        //     ],
+                        //     [
+                        //         'membre_id' => $membreId,
+                        //         'date_effective' => $this->calculerDate($dateDebut, $config->ordre_affichage),
+                        //     ]
+                        // );
                     }
                 }
             }
