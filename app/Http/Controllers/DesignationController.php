@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
@@ -101,30 +100,46 @@ class DesignationController extends Controller
             'departements'     => Departement::all(),
             'sousDepartements' => SousDepartement::all(),
             //'laboratoires'     => Laboratoire::with(['config_jours.requis'])->get(),
-            'laboratoires' => Laboratoire::with(['config_jours.requis'])->get(),
+            'laboratoires'     => Laboratoire::with(['config_jours.requis'])->get(),
             'membres'          => Membre::orderBy('nom')->get(),
         ]);
     }
     public function store(Request $request)
     {
+        //dd($request->all());
         $allDesignations = $request->input('all_designations', []);
-        $semaineNom = $request->input('semaine_nom');
-        $dateDebut = $request->input('date_debut');
+        $semaineNom      = $request->input('semaine_nom');
+
+        // On valide que les champs sont présents et non nulls ('required')
+        // $validated = $request->validate([
+        //     'date_debut'          => 'required|date',
+        //     'sous_departement_id' => 'required|integer|exists:sous_departements,id',
+        // ]);
+
+        $dateDebut  = $request->input('date_debut');
         $sousDeptId = $request->input('sous_departement_id');
+
+        if (is_null($dateDebut) || is_null($sousDeptId)) {
+        // Option A : Retourner une erreur flash
+        return back()->withErrors(['msg' => 'La date et le sous-département sont obligatoires.']);
+        
+        // Option B : Lever une exception
+        // abort(400, "Données manquantes");
+    }
 
         DB::beginTransaction();
         try {
             // 1. On assure l'existence de l'en-tête (la semaine)
             $designation = Designation::updateOrCreate(
                 [
-                    'semaine_nom' => $semaineNom,
+                    'semaine_nom'         => $semaineNom,
                     'sous_departement_id' => $sousDeptId,
                 ],
                 [
-                    'date_debut' => $dateDebut,
-                    'date_fin' => \Carbon\Carbon::parse($dateDebut)->addDays(7),
+                    'date_debut'  => $dateDebut,
+                    'date_fin'    => Carbon::parse($dateDebut)->addDays(7),
                     'createur_id' => auth()->id(),
-                    'statut' => 'publié',
+                    'statut'      => 'publié',
                 ]
             );
 
@@ -140,12 +155,14 @@ class DesignationController extends Controller
                         ->where('jour', $jourSlug)
                         ->first();
 
-                    if (!$config) continue;
+                    if (! $config) {
+                        continue;
+                    }
 
                     foreach ($requisGroup as $requisId => $membreId) {
                         Log::info("Traitement du poste requis ID: $requisId pour le jour: $jourSlug et laboratoire ID: $labId");
                         // Si la case est vidée dans l'interface
-                        if (!$membreId) {
+                        if (! $membreId) {
                             $designation->items()
                                 ->where('laboratoire_id', $labId)
                                 ->where('laboratoire_config_id', $config->id)
@@ -157,7 +174,7 @@ class DesignationController extends Controller
                         // On regarde directement la colonne de type dans la table config
                         if ($config->type_config === 'calendrier') {
                             // Si c'est du calendrier, on calcule : date_debut + (ordre - 1)
-                            $dateEffective = \Carbon\Carbon::parse($dateDebut)->addDays($config->ordre_affichage - 1);
+                            $dateEffective = Carbon::parse($dateDebut)->addDays($config->ordre_affichage - 1);
                         } else {
                             // Sinon (type 'fixe'), on garde la date_debut brute
                             $dateEffective = $dateDebut;
@@ -165,12 +182,12 @@ class DesignationController extends Controller
 
                         $designation->items()->updateOrCreate(
                             [
-                                'laboratoire_id' => $labId,
-                                'laboratoire_config_id' => $config->id
+                                'laboratoire_id'        => $labId,
+                                'laboratoire_config_id' => $config->id,
                             ],
                             [
-                                'membre_id' => $membreId,
-                                'date_effective' => $dateEffective
+                                'membre_id'      => $membreId,
+                                'date_effective' => $dateEffective,
                             ]
                         );
                         // $designation->items()->updateOrCreate(
@@ -189,9 +206,11 @@ class DesignationController extends Controller
             }
 
             DB::commit();
+            //dd("Désignation enregistrée avec succès !");
             return back()->with('success', 'Planning global enregistré avec succès.');
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e->getMessage());
             return back()->with('error', $e->getMessage());
         }
     }

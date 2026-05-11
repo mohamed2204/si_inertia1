@@ -2,6 +2,24 @@
 // import "../css/app.css";
 
 // resources/js/app.jsx
+import { router } from '@inertiajs/react'
+import Swal from 'sweetalert2'
+
+router.on('error', (event) => {
+    const errors = event.detail.errors;
+    const message = Object.values(errors)[0];
+
+    Swal.fire({
+        icon: 'error',
+        title: 'Oups !',
+        text: message,
+        toast: true,
+        position: 'top-end',
+        timer: 4000,
+        showConfirmButton: false,
+    });
+});
+
 import { PrimeReactProvider } from "primereact/api";
 
 // 1. Thème de base PrimeReact (Lara, Saga, etc.)

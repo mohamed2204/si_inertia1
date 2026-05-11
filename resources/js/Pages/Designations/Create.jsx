@@ -56,9 +56,35 @@ const CreateDesignation = ({
 
     const submit = (e) => {
         e.preventDefault();
-        post(route("designations.store"));
-    };
 
+        post(route("designations.store"), {
+            onError: (errors) => {
+                // On récupère le premier message d'erreur ou un message générique
+                const firstError = Object.values(errors)[0];
+
+                // Si vous utilisez SweetAlert2
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur de validation',
+                    text: firstError || "Veuillez vérifier les champs du formulaire.",
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            },
+            onSuccess: () => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Enregistré !',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        });
+    };
     return (
         <Layout>
             <Head title="Nouvelle Désignation" />
@@ -83,12 +109,6 @@ const CreateDesignation = ({
                             locale="fr" // Optionnel si configuré globalement
                             dateFormat="dd/mm/yy" // Pour avoir le format 08/05/2026
                         />
-                        {/* <Calendar
-                            value={data.date_debut}
-                            onChange={(e) => setData("date_debut", e.value)}
-                            showIcon
-                            className="w-full"
-                        /> */}
                     </div>
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">
@@ -187,8 +207,9 @@ const CreateDesignation = ({
                                         <div
                                             className="p-3 text-center border-0 bg-bleu-50"
                                             style={{
-                                                backgroundColor: "#eff6ff",
+                                                backgroundColor: conf.type_config === 'fixe' ? "#959ce0d5" : "#d1d5dbd5",
                                             }}
+
                                         >
                                             <span className="text-sm font-bold tracking-wider uppercase text-800">
                                                 {conf.jour_label ||
@@ -197,7 +218,11 @@ const CreateDesignation = ({
                                         </div>
 
                                         {/* CORPS DE CARTE DENSE (3 colonnes) */}
-                                        <div className="p-3">
+                                        <div className="p-3"
+                                            style={{
+                                                backgroundColor: conf.type_config === 'fixe' ? "#9dbeeed5" : "transparent",
+                                            }}
+                                        >
                                             {/* On utilise flex-column pour empiler les lignes proprement */}
                                             <div className="flex gap-3 flex-column">
                                                 {conf.requis?.map((req) => (
@@ -209,21 +234,10 @@ const CreateDesignation = ({
                                                         <div className="py-0 col-3">
                                                             <label
                                                                 className="block text-xs font-semibold uppercase truncate text-500"
-                                                                style={{
-                                                                    textAlign:
-                                                                        "left",
-                                                                }} // Alignement à gauche pour le titre
-                                                                title={
-                                                                    req
-                                                                        .role_tache
-                                                                        ?.libelle ||
-                                                                    req.libelle
-                                                                }
+                                                                style={{ textAlign: "left", }} // Alignement à gauche pour le titre
+                                                                title={req.role_tache?.libelle || req.libelle}
                                                             >
-                                                                {req.role_tache
-                                                                    ?.libelle ||
-                                                                    req.libelle}{" "}
-                                                                :
+                                                                {req.role_tache?.libelle || req.libelle}{" "}:
                                                             </label>
                                                         </div>
 
@@ -233,13 +247,13 @@ const CreateDesignation = ({
                                                                 value={
                                                                     data
                                                                         .all_designations[
-                                                                        currentLab
-                                                                            .id
+                                                                    currentLab
+                                                                        .id
                                                                     ]?.[
-                                                                        conf
-                                                                            .jour
+                                                                    conf
+                                                                        .jour
                                                                     ]?.[
-                                                                        req.id
+                                                                    req.id
                                                                     ] || null
                                                                 }
                                                                 options={
@@ -267,59 +281,6 @@ const CreateDesignation = ({
                                                 ))}
                                             </div>
                                         </div>
-                                        {/* <div className="p-3">
-                                            <div className="grid row-gap-3">
-                                                {conf.requis?.map((req) => (
-                                                    <div
-                                                        key={req.id}
-                                                        className="p-1 col-4"
-                                                    >
-                                                        <label
-                                                            className="block mb-1 text-xs font-semibold text-center uppercase truncate text-500"
-                                                            title={
-                                                                req.role_tache
-                                                                    ?.libelle ||
-                                                                req.libelle
-                                                            }
-                                                        >
-                                                            {req.role_tache
-                                                                ?.libelle ||
-                                                                req.libelle}
-                                                        </label>
-
-                                                        <Dropdown
-                                                            value={
-                                                                data
-                                                                    .all_designations[
-                                                                    currentLab
-                                                                        .id
-                                                                ]?.[
-                                                                    conf.jour
-                                                                ]?.[req.id] ||
-                                                                null
-                                                            }
-                                                            options={membres}
-                                                            optionLabel="nom"
-                                                            optionValue="id"
-                                                            placeholder="..."
-                                                            className="w-full text-xs p-inputtext-sm border-round-md"
-                                                            style={{
-                                                                height: "34px",
-                                                            }}
-                                                            filter
-                                                            onChange={(e) =>
-                                                                handleMemberChange(
-                                                                    currentLab.id,
-                                                                    conf.jour,
-                                                                    req.id,
-                                                                    e.value,
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div> */}
                                     </div>
                                 </div>
                             ))}
