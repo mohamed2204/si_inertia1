@@ -5,10 +5,11 @@
 import { PrimeReactProvider } from "primereact/api";
 
 // 1. Thème de base PrimeReact (Lara, Saga, etc.)
-//import "primereact/resources/themes/lara-light-indigo/theme.css";
+import "primereact/resources/themes/lara-light-indigo/theme.css";
 //import "primereact/resources/themes/saga-blue/theme.css";
 //import "primereact/resources/themes/soho-dark/theme.css";
-import "primereact/resources/themes/mdc-light-deeppurple/theme.css";
+//import "primereact/resources/themes/mdc-light-deeppurple/theme.css";
+//import "primereact/resources/themes/mdc-dark-deeppurple/theme.css";
 
 // 2. Coeur de PrimeReact et Icônes
 import "primereact/resources/primereact.min.css";

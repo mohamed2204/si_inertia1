@@ -184,8 +184,13 @@ const CreateDesignation = ({
                                     {/* CONTENEUR CARTE STYLE FLAT */}
                                     <div className="h-full overflow-hidden bg-white border-1 border-200 border-round-xl shadow-1">
                                         {/* HEADER BLEU CIEL */}
-                                        <div className="p-3 text-center bg-blue-50 border-bottom-1">
-                                            <span className="text-sm font-bold tracking-wider uppercase text-700">
+                                        <div
+                                            className="p-3 text-center border-0 bg-bleu-50"
+                                            style={{
+                                                backgroundColor: "#eff6ff",
+                                            }}
+                                        >
+                                            <span className="text-sm font-bold tracking-wider uppercase text-800">
                                                 {conf.jour_label ||
                                                     `Jour ${conf.jour}`}
                                             </span>

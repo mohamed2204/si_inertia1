@@ -30,7 +30,7 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Routes de la Grille (Affichage Spécifique) ---
     // Notez le changement des noms pour éviter les conflits
-    Route::get('/designations-grille', [DesignationPageController::class, 'index'])->name('designations.grille.index');
+    Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.grille.index');
 
     // Si la grille utilise le même store, une seule route suffit.
     // Si la logique de mise à jour est différente :

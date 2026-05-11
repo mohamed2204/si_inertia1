@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
@@ -52,28 +53,49 @@ class DesignationPageController extends Controller
     // }
 
     public function index()
-{
-    return Inertia::render('Designations/DesignationsPage', [
-        // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
-        'departements' => Departement::with([
-            'sousDepartements.laboratoires.config_jours.requis'
-        ])->get(),
+    {
+        return Inertia::render('TestLayout', [
+            // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
+            'departements' => Departement::with([
+                'sousDepartements.laboratoires.config_jours.requis'
+            ])->get(),
 
-        'membres' => Membre::select('id', 'nom')
-            ->orderBy('nom')
-            ->get(),
+            'membres' => Membre::select('id', 'nom')
+                ->orderBy('nom')
+                ->get(),
 
-        'designations' => Designation::with([
-            'sousDepartement.departement',
-            // On adapte aussi le chargement de l'historique si nécessaire
-            'items.laboratoire',
-            'items.membre',
-        ])
-        ->latest()
-        ->paginate(10)
-        ->withQueryString(),
-    ]);
-}
+            'designations' => Designation::with([
+                'sousDepartement.departement',
+                // On adapte aussi le chargement de l'historique si nécessaire
+                'items.laboratoire',
+                'items.membre',
+            ])
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+        ]);
+
+        return Inertia::render('Designations/DesignationsPage', [
+            // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
+            'departements' => Departement::with([
+                'sousDepartements.laboratoires.config_jours.requis'
+            ])->get(),
+
+            'membres' => Membre::select('id', 'nom')
+                ->orderBy('nom')
+                ->get(),
+
+            'designations' => Designation::with([
+                'sousDepartement.departement',
+                // On adapte aussi le chargement de l'historique si nécessaire
+                'items.laboratoire',
+                'items.membre',
+            ])
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+        ]);
+    }
     /**
      * Enregistre une nouvelle planification
      */
@@ -109,7 +131,7 @@ class DesignationPageController extends Controller
 
         return redirect()->back()->with('success', 'Planning enregistré avec succès !');
     }
-   
+
     public function edit($id)
     {
         // 1. Récupérer la désignation avec ses items
@@ -132,12 +154,12 @@ class DesignationPageController extends Controller
             'designation' => $designation, // L'entête (date, nom...)
             'editMode'    => true,
             'initialData' => $labsData, // Les affectations reformatées
-                                        // ... vos autres props (departements, membres, etc.)
+            // ... vos autres props (departements, membres, etc.)
         ]);
     }
-/**
- * Met à jour une planification existante
- */
+    /**
+     * Met à jour une planification existante
+     */
     public function update(Request $request, $id)
     {
         $designation = Designation::findOrFail($id);
@@ -179,7 +201,6 @@ class DesignationPageController extends Controller
 
             DB::commit();
             return redirect()->back()->with('success', 'Désignation mise à jour !');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Erreur lors de la mise à jour.');
