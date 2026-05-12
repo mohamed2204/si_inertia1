@@ -67,35 +67,63 @@ class DesignationController extends Controller
 
     public function index()
     {
-        return Inertia::render('Designations/Index', [
+        $data = Inertia::render('Designations/Index', [
             // 1. Liste des départements pour le premier Dropdown
-            'departements'     => Departement::select('id', 'nom')->get(),
+            'departements' => Departement::select('id', 'nom')->get(),
 
             // 2. Liste à plat des sous-départements pour filteredSousDepts
-            'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
+            // 'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
 
-            // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
-            'laboratoires'     => Laboratoire::with(['config_jours.requis'])
-                ->select('id', 'nom', 'sous_departement_id')
-                ->get(),
+            // // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
+            // 'laboratoires'     => Laboratoire::with(['config_jours.requis'])
+            //     ->select('id', 'nom', 'sous_departement_id')
+            //     ->get(),
 
-            'membres'          => Membre::select('id', 'nom')
-                ->orderBy('nom')
-                ->get(),
+            // 'membres'          => Membre::select('id', 'nom')
+            //     ->orderBy('nom')
+            //     ->get(),
 
-            'designations'     => Designation::with([
-                'sousDepartement.departement',
-                'items.laboratoire',
-                'items.membre',
-            ])
-                ->latest()
-                ->paginate(10)
-                ->withQueryString(),
-        ]);
+            // 'designations'     => Designation::with([
+            //     'sousDepartement.departement',
+            //     'items.laboratoire',
+            //     'items.membre',
+        ])
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+        // ]);
+        // $data = Inertia::render('Designations/Index', [
+        //     // 1. Liste des départements pour le premier Dropdown
+        //     'departements'     => Departement::select('id', 'nom')->get(),
+
+        //     // 2. Liste à plat des sous-départements pour filteredSousDepts
+        //     'sousDepartements' => SousDepartement::select('id', 'nom', 'departement_id')->get(),
+
+        //     // 3. Liste des laboratoires avec TOUTE la configuration (jours et postes)
+        //     'laboratoires'     => Laboratoire::with(['config_jours.requis'])
+        //         ->select('id', 'nom', 'sous_departement_id')
+        //         ->get(),
+
+        //     'membres'          => Membre::select('id', 'nom')
+        //         ->orderBy('nom')
+        //         ->get(),
+
+        //     'designations'     => Designation::with([
+        //         'sousDepartement.departement',
+        //         'items.laboratoire',
+        //         'items.membre',
+        //     ])
+        //         ->latest()
+        //         ->paginate(10)
+        //         ->withQueryString(),
+        // ]);
+        dd($data);
+        return $data;
     }
 
     public function create()
     {
+        dd("Formulaire de création de désignation");
         return Inertia::render('Designations/Create', [
             'departements'     => Departement::all(),
             'sousDepartements' => SousDepartement::all(),
@@ -120,12 +148,12 @@ class DesignationController extends Controller
         $sousDeptId = $request->input('sous_departement_id');
 
         if (is_null($dateDebut) || is_null($sousDeptId)) {
-        // Option A : Retourner une erreur flash
-        return back()->withErrors(['msg' => 'La date et le sous-département sont obligatoires.']);
-        
-        // Option B : Lever une exception
-        // abort(400, "Données manquantes");
-    }
+            // Option A : Retourner une erreur flash
+            return back()->withErrors(['msg' => 'La date et le sous-département sont obligatoires.']);
+
+            // Option B : Lever une exception
+            // abort(400, "Données manquantes");
+        }
 
         DB::beginTransaction();
         try {
