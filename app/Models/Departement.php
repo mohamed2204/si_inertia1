@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Departement extends Model
 {
     protected $fillable = ['nom'];
+    public $timestamps = true;
 
     /**
      * Un département possède plusieurs sous-départements (les 9 labs).

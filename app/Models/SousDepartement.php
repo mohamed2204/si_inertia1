@@ -18,6 +18,7 @@ class SousDepartement extends Model
     protected $table = 'sous_departements';
 
     protected $fillable = ['nom', 'departement_id'];
+    public $timestamps = true;
 
     public function departement(): BelongsTo
     {

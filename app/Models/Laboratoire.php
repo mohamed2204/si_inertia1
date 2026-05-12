@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Laboratoire extends Model
 {
     protected $fillable = ['nom', 'code', 'est_actif', 'sous_departement_id'];
-
+    public $timestamps = false;
     public function config_jours()
     {
         return $this->hasMany(LaboratoireConfig::class)->orderBy('ordre_affichage');

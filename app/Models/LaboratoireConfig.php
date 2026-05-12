@@ -10,7 +10,7 @@ class LaboratoireConfig extends Model
     use HasFactory;
 
     protected $fillable = ['laboratoire_id', 'jour', 'jour_label', 'ordre_affichage'];
-
+    public $timestamps = false;
     /**
      * Relation avec les libellés de postes (Requis)
      * C'est cette relation qui alimente les selects de votre interface
