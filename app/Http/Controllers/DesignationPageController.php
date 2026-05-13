@@ -1,209 +1,172 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
 use App\Models\Designation;
 use App\Models\Laboratoire;
 use App\Models\Membre;
-use App\Models\SousDepartement;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DesignationPageController extends Controller
 {
-    /**
-     * Affiche la liste et les données nécessaires au formulaire
-     */
-    // public function index()
-    // {
-    //     $dataReturned = Inertia::render('Designations/DesignationsPage', [
-    //         'designations'     => Designation::with(['sousDepartement.departement', 'items.laboratoire', 'items.membre'])->get(),
-    //         'departements'     => Departement::all(),
-    //         'sousDepartements' => SousDepartement::all(),
-    //         // On charge les labos avec leurs requis (rôles et quotas)
-    //         'laboratoires'     => Laboratoire::with('labRequis.roleTache')->get(),
-    //         'membres'          => Membre::select('id', 'nom')->get(),
-    //     ]);
-
-    //     //dd($dataReturned);
-
-    //     return $dataReturned;
-    // }
-
-    // public function index()
-    // {
-    //     return Inertia::render('Designations/DesignationsPage', [
-    //         // Chargement des départements avec leurs sous-départements et labos rattachés
-    //         'departements' => Departement::with([
-    //             'sousDepartements.laboratoires.labRequis.roleTache',
-    //         ])->get(),
-
-    //         // Liste simple pour les Dropdowns de sélection
-    //         'membres'      => Membre::select('id', 'nom')->orderBy('nom')->get(),
-
-    //         // Historique des désignations existantes (si besoin d'affichage)
-    //         'designations' => Designation::with([
-    //             'sousDepartement.departement',
-    //             'items.laboratoire',
-    //             'items.membre',
-    //         ])->latest()->get(),
-    //     ]);
-    // }
-
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('TestLayout', [
-            // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
-            'departements' => Departement::with([
-                'sousDepartements.laboratoires.config_jours.requis'
-            ])->get(),
+        $query = Designation::with(['sousDepartement.departement', 'createur']);
 
-            'membres' => Membre::select('id', 'nom')
-                ->orderBy('nom')
-                ->get(),
-
-            'designations' => Designation::with([
-                'sousDepartement.departement',
-                // On adapte aussi le chargement de l'historique si nécessaire
-                'items.laboratoire',
-                'items.membre',
-            ])
-                ->latest()
-                ->paginate(10)
-                ->withQueryString(),
-        ]);
-
-        return Inertia::render('Designations/DesignationsPage', [
-            // Chargement de la nouvelle hiérarchie : Lab -> Jours -> Postes (Requis)
-            'departements' => Departement::with([
-                'sousDepartements.laboratoires.config_jours.requis'
-            ])->get(),
-
-            'membres' => Membre::select('id', 'nom')
-                ->orderBy('nom')
-                ->get(),
-
-            'designations' => Designation::with([
-                'sousDepartement.departement',
-                // On adapte aussi le chargement de l'historique si nécessaire
-                'items.laboratoire',
-                'items.membre',
-            ])
-                ->latest()
-                ->paginate(10)
-                ->withQueryString(),
-        ]);
-    }
-    /**
-     * Enregistre une nouvelle planification
-     */
-
-    public function store(Request $request)
-    {
-        $designations = $request->input('designations');
-
-        // On utilise une transaction pour s'assurer que tout est enregistré ou rien du tout
-        DB::transaction(function () use ($designations) {
-
-            foreach ($designations as $labId => $jours) {
-                foreach ($jours as $jour => $postes) {
-                    foreach ($postes as $requisId => $membreId) {
-
-                        // On met à jour ou on crée l'affectation
-                        // Table: designations (id, lab_id, jour, requis_id, membre_id, date_semaine)
-                        Designation::updateOrCreate(
-                            [
-                                'lab_id'       => $labId,
-                                'jour'         => $jour,
-                                'requis_id'    => $requisId,
-                                'date_semaine' => $this->getCurrentWeekDate(), // ex: 2024-10-26
-                            ],
-                            [
-                                'membre_id' => $membreId,
-                            ]
-                        );
-                    }
-                }
-            }
+        // 1. Recherche textuelle (MySQL LIKE)
+        // UTILISEZ $request->input() ou $request->search
+        $query->when($request->input('search'), function ($q, $search) {
+            $q->where('semaine_nom', 'LIKE', "%{$search}%")
+                ->orWhere('notes_generales', 'LIKE', "%{$search}%");
         });
-
-        return redirect()->back()->with('success', 'Planning enregistré avec succès !');
-    }
-
-    public function edit($id)
-    {
-        // 1. Récupérer la désignation avec ses items
-        $designation = Designation::with(['items.membre', 'sous_departement.departement'])->findOrFail($id);
-
-        // 2. REFORMATAGE (Le bloc de code en question)
-        // On transforme les lignes SQL en structure "labs_data" pour React
-        $labsData = $designation->items->groupBy('laboratoire_id')->map(function ($items) {
-            return $items->map(function ($item) {
-                return [
-                    'role_id'   => (int) $item->role_tache_id,
-                    'slot'      => (int) $item->slot,
-                    'membre_id' => (int) $item->membre_id,
-                ];
+        // 2. Filtre par Département (via la relation sousDepartement)
+        $query->when($request->input('departement_id'), function ($q, $deptId) {
+            $q->whereHas('sousDepartement', function ($sq) use ($deptId) {
+                $sq->where('departement_id', $deptId);
             });
         });
 
-        // 3. Envoi à Inertia
-        return Inertia::render('DesignationsPage', [
-            'designation' => $designation, // L'entête (date, nom...)
-            'editMode'    => true,
-            'initialData' => $labsData, // Les affectations reformatées
-            // ... vos autres props (departements, membres, etc.)
-        ]);
+        // 3. Filtre par Sous-Département
+        $query->when($request->input('sous_departement_id'), function ($q, $sdId) {
+            $q->where('sous_departement_id', $sdId);
+        });
+
+        // 4. Filtre par Statut
+        $query->when($request->input('statut'), function ($q, $statut) {
+            $q->where('statut', $statut);
+        });
+
+        //dd($query->toSql(), $query->getBindings()); // Debug : voir la requête générée et les paramètres
+
+        // 5. Tri et Pagination
+        $results = $query->orderBy($request->input('sort_by') ?? 'created_at', $request->input('sort_dir') ?? 'desc')
+            ->paginate($request->input('per_page') ?? 10);
+
+        return response()->json($results);
     }
-    /**
-     * Met à jour une planification existante
-     */
-    public function update(Request $request, $id)
+
+    public function show(Designation $designation)
     {
-        $designation = Designation::findOrFail($id);
+        $designation->load(['sousDepartement.departement', 'createur']);
+        return response()->json($designation);
+    }
 
+    public function edit(Designation $designation)
+    {
+        $designation->load(['sousDepartement.departement', 'createur']);
+
+        return response()->json([
+            'designation'  => $designation,
+            'departments'  => Departement::all(),
+            'config_types' => ['fixe', 'variable'],
+        ]);
+    }
+
+    public function store(Request $request)
+    {
         $validated = $request->validate([
-            'semaine_nom'         => 'required|string',
-            'date_debut'          => 'required|date',
+            'semaine_nom'         => 'required|string|max:255',
             'sous_departement_id' => 'required|exists:sous_departements,id',
-            'labs_data'           => 'required|array',
+            'statut'              => 'required|in:active,inactive',
+            'notes_generales'     => 'nullable|string',
         ]);
 
-        try {
-            DB::beginTransaction();
+        $designation = Designation::create([
+             ...$validated,
+            'createur_id' => auth()->id(),
+        ]);
 
-            // 1. Mise à jour de l'entête
-            $designation->update([
-                'semaine_nom'         => $validated['semaine_nom'],
-                'date_debut'          => $validated['date_debut'],
-                'sous_departement_id' => $validated['sous_departement_id'],
-            ]);
-
-            // 2. Supprimer les anciens items pour reconstruire la nouvelle grille
-            // C'est la méthode la plus propre pour gérer les changements de quotas/membres
-            $designation->items()->delete();
-
-            // 3. Ré-insertion des nouvelles données
-            foreach ($request->labs_data as $labId => $affectations) {
-                foreach ($affectations as $item) {
-                    if (! empty($item['membre_id'])) {
-                        $designation->items()->create([
-                            'laboratoire_id' => $labId,
-                            'role_tache_id'  => $item['role_id'],
-                            'slot'           => $item['slot'],
-                            'membre_id'      => $item['membre_id'],
-                        ]);
-                    }
-                }
-            }
-
-            DB::commit();
-            return redirect()->back()->with('success', 'Désignation mise à jour !');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Erreur lors de la mise à jour.');
-        }
+        return response()->json($designation, 201);
     }
+
+    public function update(Request $request, Designation $designation)
+    {
+        $validated = $request->validate([
+            'semaine_nom'         => 'required|string|max:255',
+            'sous_departement_id' => 'required|exists:sous_departements,id',
+            'statut'              => 'required|in:active,inactive',
+            'notes_generales'     => 'nullable|string',
+        ]);
+
+        $designation->update($validated);
+
+        return response()->json($designation);
+    }
+
+    public function destroy(Designation $designation)
+    {
+        $designation->delete();
+        return response()->json(null, 204);
+    }
+
+    public function duplicate(Designation $designation)
+    {
+        $newDesignation               = $designation->replicate();
+        $newDesignation->semaine_nom .= ' (Copie)';
+        $newDesignation->createur_id  = auth()->id();
+        $newDesignation->save();
+
+        return response()->json($newDesignation, 201);
+    }
+
+    /**
+     * Affiche le formulaire de création.
+     * On n'envoie QUE les départements pour alléger le payload initial.
+     */
+    public function create()
+    {
+        // On récupère uniquement l'ID et le nom pour la performance
+        // auth()->user() est implicitement géré par le middleware 'web'
+        $departments = Departement::select('id', 'nom')
+            ->orderBy('nom')
+            ->get();
+
+        return Inertia::render('Designations/Createapi', [
+            'departments'  => $departments,
+            // On peut envoyer d'autres constantes si nécessaire (ex: types de config)
+            'config_types' => ['fixe', 'variable'],
+        ]);
+    }
+    // LabController.php (Version MySQL)
+    public function searchMembers(Request $request, Laboratoire $lab)
+    {
+        $query = $request->input('q');
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        // MySQL gère le LIKE sans distinction de casse par défaut avec les collations courantes
+        // return $lab->membres()
+        //     ->where('name', 'LIKE', "%{$query}%")
+        //     ->select('id', 'name')
+        //     ->limit(10)
+        //     ->get();
+
+        return Membre::query()
+            ->whereRaw('LOWER(name) LIKE ?', ["%{$query}%"])
+            ->select('id', 'name')
+            ->limit(10)
+            ->get();
+    }
+
+    // 1. On récupère juste les jours de configuration pour le labo
+    public function getLabDays(Laboratoire $lab)
+    {
+        return $lab->config_jours()
+            ->select('id', 'jour_label', 'ordre_affichage')
+            ->orderBy('ordre_affichage')
+            ->get();
+    }
+
+// 2. Appel Axios séparé pour charger les membres d'une config spécifique
+    // public function getConfigMembers(LaboratoireConfig $config)
+    // {
+    //     // Le backend identifie l'utilisateur via la session
+    //     return $config->requis()
+    //         ->select('id', 'name', 'ordre')
+    //         ->orderBy('ordre')
+    //         ->get();
+    // }
 }

@@ -62,9 +62,9 @@ const AppMenu = () => {
                     visible: hasRole('admin') || hasPermission('view_designations')
                 },
                 {
-                    label: 'Designations Grille',
+                    label: 'Designations api',
                     icon: 'pi pi-fw pi-cog',
-                    to: '/designationsgrille',
+                    to: '/designations-list',
                     visible: hasRole('admin') || hasPermission('view_designations')
                 },
             ]

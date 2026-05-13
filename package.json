@@ -29,6 +29,7 @@
         "@inertiajs/react": "^2.3.21",
         "@react-pdf-viewer/core": "^3.12.0",
         "@react-pdf-viewer/default-layout": "^3.12.0",
+        "lodash": "^4.18.1",
         "lucide-react": "^1.14.0",
         "pdfjs-dist": "^3.4.120",
         "primeflex": "^4.0.0",

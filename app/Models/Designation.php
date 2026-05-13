@@ -38,12 +38,6 @@ class Designation extends Model
     {
         return $this->belongsTo(SousDepartement::class, 'sous_departement_id');
     }
-    // public function laboratoire(): BelongsTo
-    // {
-    //     return $this->belongsTo(Laboratoire::class);
-    // }
-
-
 
     public function createur(): BelongsTo
     {

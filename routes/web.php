@@ -30,12 +30,33 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Routes de la Grille (Affichage Spécifique) ---
     // Notez le changement des noms pour éviter les conflits
-    Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.grille.index');
+    // 1. La route qui affiche la page Index (appelée une seule fois au chargement)
+    Route::get('/designations-list', function () {
+        return Inertia::render('Designations/IndexApi', [
+            'initialDepartments' => \App\Models\Departement::all(), // On passe les depts pour les filtres
+        ]);
+    })->name('designations.index.page');
 
+// 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
+    Route::get('/api/designations', [DesignationPageController::class, 'index'])->name('designations.api.index');
+    Route::get('/api/designations/{designation}', [DesignationPageController::class, 'show'])->name('designations.api.show');
+    Route::get('/api/designations/{designation}/edit', [DesignationPageController::class, 'edit'])->name('designations.api.edit');
+
+    
+    // /api/departments/${deptId}/sous-departments`),
+    Route::get('/api/departments/{department}/sous-departments', function (\App\Models\Departement $department) {
+        return $department->sousDepartements()->select('id', 'nom')->get();
+    })->name('api.departments.sous-departments');
+
+    Route::post('/designationsapi', [DesignationPageController::class, 'store'])->name('designations.api.store');
+
+
+
+    
     // Si la grille utilise le même store, une seule route suffit.
     // Si la logique de mise à jour est différente :
-    Route::put('/designations-grille/{designation}', [DesignationPageController::class, 'update'])->name('designations.grille.update');
-    Route::delete('/designations-grille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.grille.destroy');
+    // Route::put('/designations-api/{designation}', [DesignationPageController::class, 'update'])->name('designations.api.update');
+    // Route::delete('/designations-api/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.api.destroy');
     // Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
     // Route::get('/designations/create', [DesignationController::class, 'create'])->name('designations.create');
     // Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
@@ -44,16 +65,12 @@ Route::middleware(['auth'])->group(function () {
     // Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
     // Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
 
-
     // Route::get('/designationsgrille', [DesignationPageController::class, 'index'])->name('designations.index');
     // Route::post('/designationsgrille', [DesignationController::class, 'store'])->name('designations.store');
 
     // // Si vous prévoyez de gérer l'édition et la suppression plus tard :
     // Route::put('/designationsgrille/{designation}', [DesignationPageController::class, 'update'])->name('designations.update');
     // Route::delete('/designationsgrille/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.destroy');
-
-
-
 
     Route::get('/api/membres-disponibles', function () {
         // On ne récupère que les colonnes nécessaires pour alléger le JSON
@@ -63,8 +80,6 @@ Route::middleware(['auth'])->group(function () {
     // Route pour l'affichage de la page de configuration (Inertia)
     Route::get('/admin/laboratoires/requis', [LabRequisController::class, 'index'])
         ->name('lab-requis.index');
-
-
 
     // Route pour enregistrer les requis d'un laboratoire spécifique
     Route::post('/laboratoires/{laboratoire}/requis-sync', [LabRequisController::class, 'sync'])
