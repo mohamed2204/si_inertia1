@@ -5,6 +5,7 @@ use App\Models\Departement;
 use App\Models\Designation;
 use App\Models\Laboratoire;
 use App\Models\Membre;
+use App\Models\SousDepartement;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -58,7 +59,7 @@ class DesignationPageController extends Controller
 
         return response()->json([
             'designation'  => $designation,
-            'departments'  => Departement::all(),
+            'departements' => Departement::all(),
             'config_types' => ['fixe', 'variable'],
         ]);
     }
@@ -118,16 +119,17 @@ class DesignationPageController extends Controller
     {
         // On récupère uniquement l'ID et le nom pour la performance
         // auth()->user() est implicitement géré par le middleware 'web'
-        $departments = Departement::select('id', 'nom')
+        $departements = Departement::select('id', 'nom')
             ->orderBy('nom')
             ->get();
 
-        return Inertia::render('Designations/Createapi', [
-            'departments'  => $departments,
+        return Inertia::render('Designations/CreateDesignation', [
+            'departements' => $departements,
             // On peut envoyer d'autres constantes si nécessaire (ex: types de config)
             'config_types' => ['fixe', 'variable'],
         ]);
     }
+
     // LabController.php (Version MySQL)
     public function searchMembers(Request $request, Laboratoire $lab)
     {
@@ -151,22 +153,35 @@ class DesignationPageController extends Controller
             ->get();
     }
 
-    // 1. On récupère juste les jours de configuration pour le labo
-    public function getLabDays(Laboratoire $lab)
+    // /** */
+    //  * 1.Charger leslabospourunsous - département spécifique
+    //  *  /
+    public function getLabsBySousDept(SousDepartement $sous_departement)
     {
-        return $lab->config_jours()
-            ->select('id', 'jour_label', 'ordre_affichage')
-            ->orderBy('ordre_affichage')
-            ->get();
+        // On récupère les labos liés à ce sous-département
+        $labs = $sous_departement->laboratoires()->select('id', 'nom')->get();
+
+        return response()->json($labs);
     }
 
-// 2. Appel Axios séparé pour charger les membres d'une config spécifique
-    // public function getConfigMembers(LaboratoireConfig $config)
-    // {
-    //     // Le backend identifie l'utilisateur via la session
-    //     return $config->requis()
-    //         ->select('id', 'name', 'ordre')
-    //         ->orderBy('ordre')
-    //         ->get();
-    // }
+    /**
+     * 2. Charger la configuration complète (jours + requis)
+     */
+    public function getLabConfig(Laboratoire $lab)
+    {
+        // On charge le labo avec ses relations (ex: jours d'ouverture, équipements requis)
+        // 'config' peut être une relation ou un champ JSON selon votre structure
+        // On charge les jours d'ouverture ET, pour chaque jour, ses postes requis
+        $lab->load(['config_jours.requis']);
+
+        return response()->json($lab);
+
+        // return response()->json([
+        //     'id'           => $lab->id,
+        //     'nom'          => $lab->nom,
+        //     'jours'        => $lab->jours_ouverture, // ex: ['Lundi', 'Mardi', ...]
+        //     'requis'       => $lab->besoins_specifiques,
+        //     'capacite_max' => $lab->capacite,
+        // ]);
+    }
 }

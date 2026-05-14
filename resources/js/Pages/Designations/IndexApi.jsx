@@ -5,7 +5,11 @@ import api from '@/Services/api';
 import { debounce } from 'lodash';
 import Pagination from '../Components/Pagination'; // Composant à créer ci-dessous
 import Swal from 'sweetalert2';
-
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+//import { Button } from 'primereact/button';
+import { Tag } from 'primereact/tag'; // Pour un plus beau rendu du statut
 
 export default function Index({ initialDepartments }) {
     // --- ÉTATS ---
@@ -31,6 +35,45 @@ export default function Index({ initialDepartments }) {
         sort_by: 'created_at',
         sort_dir: 'desc'
     });
+
+    // Template pour la date
+    const dateBodyTemplate = (rowData) => {
+        return rowData.date_debut
+            ? `Du ${new Date(rowData.date_debut).toLocaleDateString()}`
+            : 'Date non définie';
+    };
+
+    // Template pour le statut (Look Sakai)
+    const statusBodyTemplate = (rowData) => {
+        return <Tag value={rowData.statut} severity={getStatusSeverity(rowData.statut)} />;
+    };
+
+    // Fonction helper pour la couleur du tag
+    const getStatusSeverity = (status) => {
+        switch (status) {
+            case 'valide': return 'success';
+            case 'en_attente': return 'warning';
+            case 'rejete': return 'danger';
+            default: return 'secondary';
+
+        }
+    };
+
+    // Template pour les ACTIONS (Look image 1000136776.jpg)
+    const actionBodyTemplate = (rowData) => {
+        return (
+            <div className="flex justify-end gap-2">
+                <Button icon="pi pi-search" rounded severity="info"
+                    onClick={() => window.location.href = `/api/designations/${rowData.id}`} />
+
+                <Button icon="pi pi-pencil" rounded severity="success"
+                    onClick={() => window.location.href = `/api/designations/${rowData.id}/edit`} />
+
+                <Button icon="pi pi-trash" rounded severity="warning"
+                    onClick={() => handleDelete(rowData.id)} />
+            </div>
+        );
+    };
 
     // --- LOGIQUE DE CHARGEMENT ---
     const loadDesignations = async () => {
@@ -147,6 +190,8 @@ export default function Index({ initialDepartments }) {
             alert("Erreur lors de la duplication");
         }
     };
+
+
     return (
         <Layout>
             <div className="p-6 bg-gray-50 min-h-screen">
@@ -199,116 +244,69 @@ export default function Index({ initialDepartments }) {
                             ))}
                         </select>
                     </div>
+                    {/* Barre d'outils au-dessus du tableau */}
+                    <div className="flex justify-content-between align-items-center mb-4">
+                        <h2 className="text-xl font-semibold text-gray-800 m-0">Liste des Désignations</h2>
 
-                    {/* TABLEAU */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Semaine</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sous-Département</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Créateur</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="text-center py-10 text-gray-500">
-                                            <span className="flex justify-center items-center gap-2">
-                                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Chargement des données...
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ) : (tableData?.data && tableData.data.length > 0) ? (
-                                    tableData.data.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-gray-900">{item.semaine_nom}</td>
-                                            {/* Utilisation du chaînage optionnel pour éviter les erreurs sur les relations */}
-                                            <td className="px-6 py-4 text-gray-600">{item.sous_departement?.nom || 'N/A'}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">
-                                                {item.date_debut ? `Du ${new Date(item.date_debut).toLocaleDateString()}` : 'Date non définie'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(item.statut)}`}>
-                                                    {item.statut}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{item.createur?.name || 'Inconnu'}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end items-center gap-2">
-                                                    {/* BOUTON VOIR */}
-                                                    <button
-                                                        onClick={() => window.location.href = `/api/designations/${item.id}`}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                                                        title="Voir les détails"
-                                                    >
-                                                        <svg className="h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                        </svg>
-                                                    </button>
-
-                                                    {/* BOUTON MODIFIER */}
-                                                    <button
-                                                        onClick={() => window.location.href = `/api/designations/${item.id}/edit`}
-                                                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-200"
-                                                        title="Modifier"
-                                                    >
-                                                        <svg className="h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                    </button>
-
-                                                    {/* BOUTON DUPLIQUER */}
-                                                    <button
-                                                        onClick={() => handleDuplicate(item.id)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200"
-                                                        title="Dupliquer"
-                                                    >
-                                                        <svg className="h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                                                        </svg>
-                                                    </button>
-
-                                                    {/* BOUTON SUPPRIMER */}
-                                                    <button
-                                                        onClick={() => handleDelete(item.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                                                        title="Supprimer"
-                                                    >
-                                                        <svg className="h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" className="text-center py-10 text-gray-500 italic">
-                                            Aucune désignation trouvée.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Button
+                            label="Nouvelle Désignation"
+                            icon="pi pi-plus"
+                            severity="primary"
+                            className="p-button-raised border-round-lg"
+                            onClick={() => window.location.href = '/api/designations/create'}
+                        />
                     </div>
 
-                    {/* PAGINATION */}
-                    <div className="mt-4 flex justify-between items-center">
-                        <p className="text-sm text-gray-600">Total: {tableData.total} désignations</p>
-                        <Pagination
-                            links={tableData.links}
-                            onPageChange={(page) => setParams(prev => ({ ...prev, page }))}
-                        />
+                    {/* TABLEAU */}
+                    <div className="card shadow-2 border-round-xl overflow-hidden">
+                        <DataTable
+                            value={tableData?.data || []}
+                            loading={loading}
+                            dataKey="id"
+                            className="p-datatable-sm"
+                            stripedRows
+                            // On désactive la pagination interne si on utilise celle du serveur
+                            responsiveLayout="stack"
+                            breakpoint="960px"
+                            emptyMessage="Aucune désignation trouvée."
+                        >
+                            <Column field="semaine_nom" header="Semaine" sortable font-medium />
+
+                            <Column
+                                header="Sous-Département"
+                                body={(rowData) => rowData.sous_departement?.nom || 'N/A'}
+                            />
+
+                            <Column
+                                header="Dates"
+                                body={dateBodyTemplate}
+                            />
+
+                            <Column
+                                header="Statut"
+                                body={statusBodyTemplate}
+                            />
+
+                            <Column
+                                header="Créateur"
+                                body={(rowData) => rowData.createur?.name || 'Inconnu'}
+                            />
+
+                            <Column
+                                body={actionBodyTemplate}
+                                headerStyle={{ width: '12rem', textAlign: 'right' }}
+                                bodyStyle={{ textAlign: 'right', overflow: 'visible' }}
+                            />
+                        </DataTable>
+
+                        {/* On garde votre composant Pagination externe pour gérer le côté serveur d'Inertia */}
+                        <div className="mt-4 flex justify-between items-center p-3 bg-gray-50 border-top-1 ">
+                            <p className="text-sm text-gray-600 font-medium">Total: {tableData.total} désignations</p>
+                            <Pagination
+                                links={tableData.links}
+                                onPageChange={(page) => setParams(prev => ({ ...prev, page }))}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
