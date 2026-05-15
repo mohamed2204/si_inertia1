@@ -67,7 +67,7 @@ export default function Index({ initialDepartments }) {
                     onClick={() => window.location.href = `/api/designations/${rowData.id}`} />
 
                 <Button icon="pi pi-pencil" rounded severity="success"
-                    onClick={() => window.location.href = `/api/designations/${rowData.id}/edit`} />
+                    onClick={() => window.location.href = `/designations/${rowData.id}/edit`} />
 
                 <Button icon="pi pi-trash" rounded severity="warning"
                     onClick={() => handleDelete(rowData.id)} />
@@ -269,6 +269,9 @@ export default function Index({ initialDepartments }) {
                             responsiveLayout="stack"
                             breakpoint="960px"
                             emptyMessage="Aucune désignation trouvée."
+                            // --- AJOUT DES PROPRIÉTÉS DE TRI PAR DÉFAUT ---
+                            sortField="date_debut"
+                            sortOrder={-1}
                         >
                             <Column field="semaine_nom" header="Semaine" sortable font-medium />
 
@@ -278,8 +281,10 @@ export default function Index({ initialDepartments }) {
                             />
 
                             <Column
-                                header="Dates"
+                                field="date_debut" // <-- INDISPENSABLE pour lier le tri au champ
+                                header="Date de début"
                                 body={dateBodyTemplate}
+                                sortable          // <-- Permet d'activer l'icône de tri au clic
                             />
 
                             <Column

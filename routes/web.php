@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DesignationPageController;
 use App\Http\Controllers\LabRequisController;
 use App\Models\Membre;
@@ -22,11 +21,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Version explicite (recommandée pour mieux contrôler vos URLs)
     // --- Routes Classiques (Gestion Administrative) ---
-    // Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
-    // Route::get('/designations/create', [DesignationController::class, 'create'])->name('designations.create');
-    // Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
-    // Route::put('/designations/{designation}', [DesignationController::class, 'update'])->name('designations.update');
-    // Route::delete('/designations/{designation}', [DesignationController::class, 'destroy'])->name('designations.destroy');
 
     // --- Routes de la Grille (Affichage Spécifique) ---
     // Notez le changement des noms pour éviter les conflits
@@ -37,27 +31,13 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->name('designations.index.page');
 
-
-    // 1. La route WEB pour afficher la page Index (DataTable, etc.)
-// Route::get('/designations', [DesignationPageController::class, 'index'])
-//     ->name('designations.index'); // <-- C'est vers ELLE qu'il faut rediriger !
-
-// // 2. La route WEB pour afficher le formulaire de création
-// Route::get('/designations/create', [DesignationPageController::class, 'create'])
-//     ->name('designations.create');
-
-// // 3. La route d'action pour traiter le formulaire (votre store actuel)
-// Route::post('/api/designations', [DesignationPageController::class, 'store'])
-//     ->name('designations.api.store');
-
-
 // 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
     Route::get('/designations', [DesignationPageController::class, 'index'])->name('designations.index');
     Route::get('/designations/create', [DesignationPageController::class, 'create'])->name('designations.create');
-    Route::post('/api/designations', [DesignationPageController::class, 'store'])->name('designations.api.store');
-    Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.api.destroy');
     Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])->name('designations.show');
     Route::get('/designations/{designation}/edit', [DesignationPageController::class, 'edit'])->name('designations.edit');
+    Route::post('/api/designations', [DesignationPageController::class, 'store'])->name('designations.api.store');
+    Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.api.destroy');
 
     // Récupérer les labos d'un sous-département
     Route::get('/api/sous-departements/{sous_departement}/labs', [DesignationPageController::class, 'getLabsBySousDept']);
@@ -71,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
         return $department->sousDepartements()->select('id', 'nom')->get();
     })->name('api.departments.sous-departments');
 
-    Route::post('/designationsapi', [DesignationPageController::class, 'store'])->name('designations.api.store');
+    //Route::post('/designationsapi', [DesignationPageController::class, 'store'])->name('designations.api.store');
 
     Route::get('/api/membres-disponibles', function () {
         // On ne récupère que les colonnes nécessaires pour alléger le JSON

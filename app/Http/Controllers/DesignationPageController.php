@@ -45,7 +45,7 @@ class DesignationPageController extends Controller
         //dd($query->toSql(), $query->getBindings()); // Debug : voir la requête générée et les paramètres
 
         // 5. Tri et Pagination
-        $results = $query->orderBy($request->input('sort_by') ?? 'created_at', $request->input('sort_dir') ?? 'desc')
+        $results = $query->orderBy($request->input('sort_by') ?? 'date_debut', $request->input('sort_dir') ?? 'desc')
             ->paginate($request->input('per_page') ?? 10);
 
         return response()->json($results);
@@ -57,31 +57,37 @@ class DesignationPageController extends Controller
         return response()->json($designation);
     }
 
-    public function edit(Designation $designation)
+    public function edit($id)
     {
-        $designation->load(['sousDepartement.departement', 'createur']);
+        // Charger la désignation avec ses relations clés
+        $designation = Designation::with(['sousDepartement.departement', 'items.membre'])->findOrFail($id);
 
-        return response()->json([
-            'designation'  => $designation,
-            'departements' => Departement::all(),
-            'config_types' => ['fixe', 'variable'],
+        // Formater les sous-items pour l'état initial all_designations du Front React
+        $formattedItems = [];
+        foreach ($designation->items as $item) {
+           // Debug : vérifier les données de chaque item
+                                     // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
+            $jour = $item->laboratoire_config_id; // Ajustez selon votre colonne réelle stockant le jour
+
+            $formattedItems[$item->laboratoire_id][$jour][$item->laboratoire_config_id] = $item->membre_id;
+
+            //dd($formattedItems); // Debug : vérifier la structure finale envoyée au Front
+        }
+
+        // On injecte ce tableau virtuel dans l'objet désignation avant l'envoi
+        $designation->formatted_items = $formattedItems;
+
+        return Inertia::render('Designations/FormDesignation', [
+            'departements' => Departement::all(['id', 'nom']),
+            'designation'  => $designation, // <-- Envoyé au composant !
         ]);
     }
-
     public function store(Request $request)
     {
         // On injecte 'en_attente' par défaut si le front ne l'envoie pas
         if (! $request->has('statut')) {
             $request->merge(['statut' => 'en_attente']);
         }
-
-        // $validated = $request->validate([
-        //     'date_debut'          => 'required|date',
-        //     'semaine_nom'         => 'required|string|max:255',
-        //     'sous_departement_id' => 'required|exists:sous_departements,id',
-        //     'statut'              => 'required|in:en_attente,publiee,inactive',
-        //     'notes_generales'     => 'nullable|string',
-        // ]);
 
         // Au moment de créer votre Désignation principale :
         // 3. Forcer le statut initial à 'en_attente'

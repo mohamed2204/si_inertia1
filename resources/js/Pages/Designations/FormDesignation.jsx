@@ -1,77 +1,76 @@
-import React, { useEffect, useState } from "react"; // Ajout de useState
+import React, { useEffect, useState } from "react";
 import Layout from "@/Layouts/layout";
 import { Head, useForm } from "@inertiajs/react";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import axios from "axios"; // Import axios
+import axios from "axios";
 import Swal from 'sweetalert2';
-import { AutoComplete } from 'primereact/autocomplete'; // N'oubliez pas l'import !
+import { AutoComplete } from 'primereact/autocomplete';
 
-const CreateDesignation = ({ departements = [] }) => {
-    // États pour les données chargées dynamiquement via Axios
+// 1. AJOUT de la prop 'designation' envoyée lors de l'édition
+const FormDesignation = ({ departements = [], designation = null }) => {
+    // Mode détective : si un objet designation existe, on est en mode édition
+    const isEditMode = !!designation;
+
     const [sousDepts, setSousDepts] = useState([]);
     const [labs, setLabs] = useState([]);
     const [currentLabConfig, setCurrentLabConfig] = useState(null);
-
-
-    // 2. Nouvel état local pour stocker les membres du labo sélectionné
-    const [membres, setMembres] = useState([]); // Doit impérativement être []
+    const [membres, setMembres] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    const { data, setData, post, processing, errors } = useForm({
-        semaine_nom: "",
-        date_debut: null,
-        departement_id: null,
-        sous_departement_id: null,
-        selected_lab_id: null,
-        all_designations: {},
+    // 2. Initialisation dynamique de useForm
+    const { data, setData, post, put, processing, errors } = useForm({
+        semaine_nom: designation?.semaine_nom || "",
+        // Si édition, on transforme la chaîne SQL en objet Date valide pour PrimeReact
+        date_debut: designation?.date_debut ? new Date(designation.date_debut) : null,
+        departement_id: designation?.sous_departement?.departement_id || null,
+        sous_departement_id: designation?.sous_departement_id || null,
+        selected_lab_id: designation?.items?.[0]?.laboratoire_id || null, // On pré-sélectionne le premier labo trouvé
+        all_designations: designation?.formatted_items || {}, // Les items structurés {labId: {jour: {reqId: membre}}}
     });
 
-    // 1. Charger les Sous-Départements quand le Département change
+    // 3. Hydratation automatique des cascades en mode Édition au chargement initial
     useEffect(() => {
-        if (data.departement_id) {
+        if (isEditMode && designation) {
+            // Charger les sous-départements du département existant
+            const deptId = designation?.sous_departement?.departement_id;
+            if (deptId) {
+                axios.get(`/api/departments/${deptId}/sous-departments`)
+                    .then(res => setSousDepts(res.data))
+                    .catch(err => console.error(err));
+            }
+            // Charger les labos du sous-département existant
+            if (designation.sous_departement_id) {
+                axios.get(`/api/sous-departements/${designation.sous_departement_id}/labs`)
+                    .then(res => setLabs(res.data))
+                    .catch(err => console.error(err));
+            }
+        }
+    }, [designation]);
+
+    // Charger les Sous-Départements au changement manuel
+    useEffect(() => {
+        if (data.departement_id && !isEditMode) {
             axios.get(`/api/departments/${data.departement_id}/sous-departments`)
                 .then(res => setSousDepts(res.data))
                 .catch(err => console.error("Erreur sous-depts", err));
-        } else {
-            setSousDepts([]);
         }
     }, [data.departement_id]);
 
-    // 2. Charger les Laboratoires quand le Sous-Département change
+    // Charger les Laboratoires au changement manuel
     useEffect(() => {
-        if (data.sous_departement_id) {
+        if (data.sous_departement_id && !isEditMode) {
             axios.get(`/api/sous-departements/${data.sous_departement_id}/labs`)
                 .then(res => setLabs(res.data))
                 .catch(err => console.error("Erreur labs", err));
-        } else {
-            setLabs([]);
         }
     }, [data.sous_departement_id]);
 
-    // 3. Charger la configuration complète du Labo (jours + requis) quand le Labo est sélectionné
-    // useEffect(() => {
-    //     if (data.selected_lab_id) {
-    //         setLoading(true);
-    //         axios.get(`/api/labs/${data.selected_lab_id}/config`)
-    //             .then(res => {
-    //                 setCurrentLabConfig(res.data);
-    //                 setLoading(false);
-    //             })
-    //             .catch(err => {
-    //                 console.error("Erreur config labo", err);
-    //                 setLoading(false);
-    //             });
-    //     } else {
-    //         setCurrentLabConfig(null);
-    //     }
-    // }, [data.selected_lab_id]);
-
-    // Auto-génération du nom de la semaine
+    // Auto-génération du nom de la semaine (uniquement en mode création)
     useEffect(() => {
-        if (data.date_debut && !data.semaine_nom) {
+        if (data.date_debut && !data.semaine_nom && !isEditMode) {
             const date = new Date(data.date_debut);
             const janFirst = new Date(date.getFullYear(), 0, 1);
             const weekNumber = Math.ceil(
@@ -81,9 +80,7 @@ const CreateDesignation = ({ departements = [] }) => {
         }
     }, [data.date_debut]);
 
-
-    // 3. Charger la config ET les membres quand le Labo est sélectionné
-    // On ne charge plus les membres ici !
+    // Charger la config du Labo sélectionné
     useEffect(() => {
         if (data.selected_lab_id) {
             setLoading(true);
@@ -101,25 +98,18 @@ const CreateDesignation = ({ departements = [] }) => {
         }
     }, [data.selected_lab_id]);
 
-
     const searchMembres = (event) => {
         if (!data.selected_lab_id) return;
-
         axios.get(`/api/labs/${data.selected_lab_id}/membres`, {
             params: { query: event.query }
         })
             .then(res => {
-                console.log("Membres reçus", res.data);
-                // Sécurité : On vérifie si la réponse Laravel est bien un tableau pur
-                const dataReceived = Array.isArray(res.data)
-                    ? res.data
-                    : (res.data.data || []);
-
+                const dataReceived = Array.isArray(res.data) ? res.data : (res.data.data || []);
                 setMembres(dataReceived);
             })
             .catch(err => {
                 console.error("Erreur recherche membres", err);
-                setMembres([]); // On remet un tableau vide en cas d'erreur pour éviter le crash
+                setMembres([]);
             });
     };
 
@@ -132,51 +122,50 @@ const CreateDesignation = ({ departements = [] }) => {
         setData("all_designations", newDesignations);
     };
 
+    // 4. Soumission dynamique (POST ou PUT)
     const submit = (e) => {
         e.preventDefault();
-
-        // 1. On prépare la copie modifiée
         const payload = { ...data };
-
-        // 1. Récupérer le fuseau horaire du navigateur (ex: "Africa/Casablanca", "Europe/Paris")
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        // 3. IMPORTANT : On passe "payload" en PREMIER argument pour écraser les données soumises
-        // Le deuxième argument contient les options (onError, onSuccess)
-        post(route("designations.api.store"), {
-            ...payload, // On injecte les données modifiées directement ici
-            browser_timezone: userTimeZone, // On glisse le fuseau horaire ici !
-        }, {
+        const options = {
+            ...payload,
+            browser_timezone: userTimeZone,
+        };
+
+        const config = {
             onError: (errs) => {
                 const firstError = Object.values(errs)[0];
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erreur',
-                    text: firstError || "Vérifiez le formulaire",
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
+                Swal.fire({ icon: 'error', title: 'Erreur', text: firstError || "Vérifiez le formulaire", toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
             },
             onSuccess: () => {
-                Swal.fire({ icon: 'success', title: 'Enregistré !', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                Swal.fire({ icon: 'success', title: isEditMode ? 'Planification mise à jour !' : 'Enregistré !', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
             }
-        });
+        };
+
+        // Redirection conditionnelle de l'action Inertia
+        if (isEditMode) {
+            // Utilise la route de mise à jour pour l'édition
+            put(route("designations.api.update", designation.id), options, config);
+        } else {
+            // Utilise la route de stockage par défaut
+            post(route("designations.api.store"), options, config);
+        }
     };
 
     return (
         <Layout>
-            <Head title="Nouvelle Désignation" />
+            {/* Titre de l'onglet dynamique */}
+            <Head title={isEditMode ? "Modifier la Désignation" : "Nouvelle Désignation"} />
 
             <div className="p-4 card shadow-2 border-round-xl">
+                {/* En-tête dynamique */}
                 <h2 className="pb-3 mb-4 text-xl font-bold border-bottom-1 surface-border text-800">
-                    <i className="mr-2 text-blue-500 pi pi-calendar-plus"></i>
-                    Nouvelle Planification Hebdomadaire
-                </h2>
+                    <i className={`mr-2 ${isEditMode ? 'text-orange-500 pi pi-pencil' : 'text-blue-500 pi pi-calendar-plus'}`}></i>
+                    {isEditMode ? `Modifier la Planification : ${designation.semaine_nom}` : "Nouvelle Planification Hebdomadaire"}
+                </h2> 
 
                 <div className="grid p-3 mb-5 bg-bluegray-50 border-round-xl border-1 border-100">
-                    {/* Date et Nom Semaine */}
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">DATE DEBUT</label>
                         <Calendar
@@ -184,14 +173,11 @@ const CreateDesignation = ({ departements = [] }) => {
                             onChange={(e) => setData("date_debut", e.value)}
                             showIcon
                             dateFormat="dd/mm/yy"
-                            // Si errors.date_debut existe, on applique la classe 'p-invalid'
                             className={`w-full ${errors.date_debut ? 'p-invalid' : ''}`}
+                            disabled={isEditMode} // Optionnel : Bloquer la modification de la date racine si index unique sensible
                         />
-                        {/* Affichage du texte de l'erreur en dessous du calendrier */}
                         {errors.date_debut && (
-                            <small className="block mt-1 p-error text-xs font-semibold">
-                                {errors.date_debut}
-                            </small>
+                            <small className="block mt-1 p-error text-xs font-semibold">{errors.date_debut}</small>
                         )}
                     </div>
                     <div className="col-12 md:col-6 lg:col-2">
@@ -199,7 +185,6 @@ const CreateDesignation = ({ departements = [] }) => {
                         <InputText value={data.semaine_nom} onChange={(e) => setData("semaine_nom", e.target.value)} className="w-full" />
                     </div>
 
-                    {/* SELECTS DÉPENDANTS AXIOS */}
                     <div className="col-12 md:col-4 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">DÉPARTEMENT</label>
                         <Dropdown
@@ -208,6 +193,7 @@ const CreateDesignation = ({ departements = [] }) => {
                             optionLabel="nom"
                             optionValue="id"
                             placeholder="Sélectionner..."
+                            disabled={isEditMode} // Désactivé en édition pour préserver la cohérence des liaisons
                             onChange={(e) => setData(d => ({ ...d, departement_id: e.value, sous_departement_id: null, selected_lab_id: null }))}
                             className="w-full"
                         />
@@ -217,11 +203,11 @@ const CreateDesignation = ({ departements = [] }) => {
                         <label className="block mb-1 text-xs font-bold text-600">SOUS-DÉPARTEMENT</label>
                         <Dropdown
                             value={data.sous_departement_id}
-                            options={sousDepts} // Utilise l'état local axios
+                            options={sousDepts}
                             optionLabel="nom"
                             optionValue="id"
                             placeholder="Choisir..."
-                            disabled={!data.departement_id}
+                            disabled={isEditMode || !data.departement_id}
                             onChange={(e) => setData(d => ({ ...d, sous_departement_id: e.value, selected_lab_id: null }))}
                             className="w-full"
                         />
@@ -231,7 +217,7 @@ const CreateDesignation = ({ departements = [] }) => {
                         <label className="block mb-1 text-xs font-bold text-blue-700">LABORATOIRE CIBLE</label>
                         <Dropdown
                             value={data.selected_lab_id}
-                            options={labs} // Utilise l'état local axios
+                            options={labs}
                             optionLabel="nom"
                             optionValue="id"
                             placeholder="Choisir le labo"
@@ -242,7 +228,6 @@ const CreateDesignation = ({ departements = [] }) => {
                     </div>
                 </div>
 
-                {/* GRILLE DYNAMIQUE */}
                 {loading ? (
                     <div className="p-8 text-center"><i className="pi pi-spin pi-spinner text-4xl text-blue-500"></i><p>Chargement de la grille...</p></div>
                 ) : currentLabConfig ? (
@@ -270,15 +255,12 @@ const CreateDesignation = ({ departements = [] }) => {
                                                             <label className="block text-xs font-semibold uppercase truncate text-500">{req.role_tache?.libelle || req.libelle} :</label>
                                                         </div>
                                                         <div className="py-0 col-9">
-
                                                             <AutoComplete
-                                                                // 1. Sécurisation du .find() avec le chaînage optionnel (?.) ou une valeur de secours []
                                                                 value={
                                                                     (Array.isArray(membres) ? membres : []).find(
                                                                         m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
                                                                     ) || data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || ''
                                                                 }
-                                                                // 2. Sécurisation des suggestions envoyées à PrimeReact
                                                                 suggestions={Array.isArray(membres) ? membres : []}
                                                                 completeMethod={searchMembres}
                                                                 field="nom"
@@ -303,7 +285,14 @@ const CreateDesignation = ({ departements = [] }) => {
                         </div>
 
                         <div className="flex pt-4 mt-6 justify-content-end border-top-1">
-                            <Button label="Enregistrer la planification" icon="pi pi-check" className="px-5 py-3 font-bold p-button-success border-round-xl shadow-3" loading={processing} onClick={submit} />
+                            {/* Libellé du bouton dynamique */}
+                            <Button 
+                                label={isEditMode ? "Mettre à jour la planification" : "Enregistrer la planification"} 
+                                icon="pi pi-check" 
+                                className={`px-5 py-3 font-bold border-round-xl shadow-3 ${isEditMode ? 'p-button-warning' : 'p-button-success'}`} 
+                                loading={processing} 
+                                onClick={submit} 
+                            />
                         </div>
                     </div>
                 ) : (
@@ -317,4 +306,4 @@ const CreateDesignation = ({ departements = [] }) => {
     );
 };
 
-export default CreateDesignation;
+export default FormDesignation;
