@@ -81,6 +81,14 @@ const Layout = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const { flash } = usePage().props;
+
+    useEffect(() => {
+        if (flash?.success) {
+            Swal.fire({ icon: 'success', title: flash.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+        }
+    }, [flash]);
+
     const [bindProfileMenuOutsideClickListener, unbindProfileMenuOutsideClickListener] = useEventListener({
         type: 'click',
         listener: (event) => {

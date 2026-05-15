@@ -132,9 +132,60 @@ const CreateDesignation = ({ departements = [] }) => {
         setData("all_designations", newDesignations);
     };
 
+    // const submit = (e) => {
+    //     e.preventDefault();
+
+    //     // On prépare une copie des données à envoyer
+    //     const payload = { ...data };
+
+    //     // Si une date de début existe, on la formate au format YYYY-MM-DD
+    //     if (payload.date_debut instanceof Date) {
+    //         // Option A : Utiliser le formatage ISO local
+    //         const year = payload.date_debut.getFullYear();
+    //         const month = String(payload.date_debut.getMonth() + 1).padStart(2, '0');
+    //         const day = String(payload.date_debut.getDate()).padStart(2, '0');
+
+    //         payload.date_debut = `${year}-${month}-${day}`;
+    //     }
+
+    //     // Si vous calculez 'date_effective' côté front pour chaque item de 'all_designations',
+    //     // assurez-vous d'appliquer le même traitement de chaîne de caractères à ces dates.
+
+    //     // On envoie le payload formaté à Laravel
+    //     post(route("designations.store"), {
+    //         data: payload, // Transmet les données modifiées
+    //         onError: (errs) => {
+    //             /* ... votre gestion d'erreur Swala ... */
+    //         },
+    //         onSuccess: () => {
+    //             /* ... votre succès ... */
+    //         }
+    //     });
+    // };
     const submit = (e) => {
         e.preventDefault();
-        post(route("designations.store"), {
+
+        // 1. On prépare la copie modifiée
+        const payload = { ...data };
+
+        // 2. On formate la date si c'est un objet Date
+        // if (payload.date_debut instanceof Date) {
+        //     const year = payload.date_debut.getFullYear();
+        //     const month = String(payload.date_debut.getMonth() + 1).padStart(2, '0');
+        //     const day = String(payload.date_debut.getDate()).padStart(2, '0');
+
+        //     payload.date_debut = `${year}-${month}-${day}`;
+        // }
+
+        // 1. Récupérer le fuseau horaire du navigateur (ex: "Africa/Casablanca", "Europe/Paris")
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        // 3. IMPORTANT : On passe "payload" en PREMIER argument pour écraser les données soumises
+        // Le deuxième argument contient les options (onError, onSuccess)
+        post(route("designations.api.store"), {
+            ...payload, // On injecte les données modifiées directement ici
+            browser_timezone: userTimeZone, // On glisse le fuseau horaire ici !
+        }, {
             onError: (errs) => {
                 const firstError = Object.values(errs)[0];
                 Swal.fire({
@@ -167,7 +218,20 @@ const CreateDesignation = ({ departements = [] }) => {
                     {/* Date et Nom Semaine */}
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">DATE DEBUT</label>
-                        <Calendar value={data.date_debut} onChange={(e) => setData("date_debut", e.value)} showIcon className="w-full" dateFormat="dd/mm/yy" />
+                        <Calendar
+                            value={data.date_debut}
+                            onChange={(e) => setData("date_debut", e.value)}
+                            showIcon
+                            dateFormat="dd/mm/yy"
+                            // Si errors.date_debut existe, on applique la classe 'p-invalid'
+                            className={`w-full ${errors.date_debut ? 'p-invalid' : ''}`}
+                        />
+                        {/* Affichage du texte de l'erreur en dessous du calendrier */}
+                        {errors.date_debut && (
+                            <small className="block mt-1 p-error text-xs font-semibold">
+                                {errors.date_debut}
+                            </small>
+                        )}
                     </div>
                     <div className="col-12 md:col-6 lg:col-2">
                         <label className="block mb-1 text-xs font-bold text-600">NOM SEMAINE</label>

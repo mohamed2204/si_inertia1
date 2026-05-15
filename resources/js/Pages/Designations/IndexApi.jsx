@@ -253,7 +253,7 @@ export default function Index({ initialDepartments }) {
                             icon="pi pi-plus"
                             severity="primary"
                             className="p-button-raised border-round-lg"
-                            onClick={() => window.location.href = '/api/designations/create'}
+                            onClick={() => window.location.href = '/designations/create'}
                         />
                     </div>
 
@@ -317,7 +317,7 @@ export default function Index({ initialDepartments }) {
 // Helper pour les couleurs de statut
 const getStatusClass = (status) => {
     switch (status) {
-        case 'valide': return 'bg-green-100 text-green-800';
+        case 'publiee': return 'bg-green-100 text-green-800';
         case 'en_attente': return 'bg-yellow-100 text-yellow-800';
         default: return 'bg-gray-100 text-gray-800';
     }

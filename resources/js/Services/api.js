@@ -47,7 +47,25 @@ const api = {
 
     // Pour l'index, on évite le cache global pour avoir des données fraîches
     // mais on utilise l'apiClient pour la sécurité
-    getDesignationsIndex: (params) => apiClient.get('/api/designations', { params }),
+    getDesignationsIndex: (params) => apiClient.get('/designations', { params }),
+
+    // --- NOUVELLE MÉTHODE AJOUTÉE ---
+    /**
+     * Supprime une désignation via l'apiClient
+     * @param {number|string} id - L'identifiant de la désignation
+     */
+    deleteDesignation: async (id) => {
+        const { data } = await apiClient.delete(`/api/designations/${id}`);
+
+        // OPTIONNEL : Si vous avez un cache global sur la liste des désignations,
+        // c'est le moment idéal pour faire un `cache.clear()` ou retirer la clé spécifique
+        // afin de forcer le front-end à recharger des données propres.
+        if (typeof cache !== 'undefined' && typeof cache.clear === 'function') {
+            cache.clear();
+        }
+
+        return data;
+    },
 };
 
 export default api;
