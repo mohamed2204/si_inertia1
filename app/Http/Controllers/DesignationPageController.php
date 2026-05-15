@@ -184,4 +184,27 @@ class DesignationPageController extends Controller
         //     'capacite_max' => $lab->capacite,
         // ]);
     }
+
+    public function getLabMembers(Request $request, Laboratoire $lab)
+    {
+        // On récupère ce que l'utilisateur a tapé
+        $search = $request->query('query');
+        //dd($search);
+        $query = $lab->membres()
+            ->where('membres.est_actif', true);
+
+        // Si l'utilisateur a tapé quelque chose, on filtre sur le nom
+        if (! empty($search)) {
+            $query->where('membres.nom', 'like', "%{$search}%");
+        }
+
+        // On limite à 15 résultats maximum pour la performance
+        $membres = $query->select('membres.id', 'membres.nom')
+            ->limit(15)
+            ->get();
+
+        //dd($membres);
+        return response()->json($membres->values()->all());
+    }
+
 }

@@ -1,9 +1,9 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Membre extends Model
 {
@@ -22,4 +22,10 @@ class Membre extends Model
     {
         return $this->belongsTo(Departement::class);
     }
+
+    public function laboratoires(): BelongsToMany
+    {
+        return $this->belongsToMany(Laboratoire::class, 'laboratoire_membre');
+    }
+
 }

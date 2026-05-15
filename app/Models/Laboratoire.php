@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Laboratoire extends Model
 {
     protected $fillable = ['nom', 'code', 'est_actif', 'sous_departement_id'];
-    public $timestamps = false;
+    public $timestamps  = false;
+
+    public function membres()
+    {
+        return $this->belongsToMany(Membre::class, 'laboratoire_membre');
+    }
     public function config_jours()
     {
         return $this->hasMany(LaboratoireConfig::class)->orderBy('ordre_affichage');
@@ -30,4 +35,6 @@ class Laboratoire extends Model
         // Cette relation lie le jour (ex: Lundi) aux postes nécessaires (ex: 1 Technicien)
         return $this->hasMany(LaboratoireConfigRequis::class, 'laboratoire_config_id');
     }
+
+    
 }

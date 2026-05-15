@@ -45,10 +45,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Récupérer les labos d'un sous-département
     Route::get('/api/sous-departements/{sous_departement}/labs', [DesignationPageController::class, 'getLabsBySousDept']);
-    
+
     // Récupérer la config complète d'un labo
     Route::get('/api/labs/{lab}/config', [DesignationPageController::class, 'getLabConfig']);
-
+    Route::get('/api/labs/{lab}/membres', [DesignationPageController::class, 'getLabMembers']);
 
     // /api/departments/${deptId}/sous-departments`),
     Route::get('/api/departments/{department}/sous-departments', function (\App\Models\Departement $department) {
@@ -56,7 +56,6 @@ Route::middleware(['auth'])->group(function () {
     })->name('api.departments.sous-departments');
 
     Route::post('/designationsapi', [DesignationPageController::class, 'store'])->name('designations.api.store');
-
 
     Route::get('/api/membres-disponibles', function () {
         // On ne récupère que les colonnes nécessaires pour alléger le JSON

@@ -7,12 +7,17 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import axios from "axios"; // Import axios
 import Swal from 'sweetalert2';
+import { AutoComplete } from 'primereact/autocomplete'; // N'oubliez pas l'import !
 
-const CreateDesignation = ({ departements = [], membres = [] }) => {
+const CreateDesignation = ({ departements = [] }) => {
     // États pour les données chargées dynamiquement via Axios
     const [sousDepts, setSousDepts] = useState([]);
     const [labs, setLabs] = useState([]);
     const [currentLabConfig, setCurrentLabConfig] = useState(null);
+
+
+    // 2. Nouvel état local pour stocker les membres du labo sélectionné
+    const [membres, setMembres] = useState([]); // Doit impérativement être []
     const [loading, setLoading] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
@@ -47,6 +52,38 @@ const CreateDesignation = ({ departements = [], membres = [] }) => {
     }, [data.sous_departement_id]);
 
     // 3. Charger la configuration complète du Labo (jours + requis) quand le Labo est sélectionné
+    // useEffect(() => {
+    //     if (data.selected_lab_id) {
+    //         setLoading(true);
+    //         axios.get(`/api/labs/${data.selected_lab_id}/config`)
+    //             .then(res => {
+    //                 setCurrentLabConfig(res.data);
+    //                 setLoading(false);
+    //             })
+    //             .catch(err => {
+    //                 console.error("Erreur config labo", err);
+    //                 setLoading(false);
+    //             });
+    //     } else {
+    //         setCurrentLabConfig(null);
+    //     }
+    // }, [data.selected_lab_id]);
+
+    // Auto-génération du nom de la semaine
+    useEffect(() => {
+        if (data.date_debut && !data.semaine_nom) {
+            const date = new Date(data.date_debut);
+            const janFirst = new Date(date.getFullYear(), 0, 1);
+            const weekNumber = Math.ceil(
+                ((date - janFirst) / 8.64e7 + janFirst.getDay() + 1) / 7,
+            );
+            setData("semaine_nom", `Semaine ${weekNumber} - ${date.getFullYear()}`);
+        }
+    }, [data.date_debut]);
+
+
+    // 3. Charger la config ET les membres quand le Labo est sélectionné
+    // On ne charge plus les membres ici !
     useEffect(() => {
         if (data.selected_lab_id) {
             setLoading(true);
@@ -64,17 +101,27 @@ const CreateDesignation = ({ departements = [], membres = [] }) => {
         }
     }, [data.selected_lab_id]);
 
-    // Auto-génération du nom de la semaine
-    useEffect(() => {
-        if (data.date_debut && !data.semaine_nom) {
-            const date = new Date(data.date_debut);
-            const janFirst = new Date(date.getFullYear(), 0, 1);
-            const weekNumber = Math.ceil(
-                ((date - janFirst) / 8.64e7 + janFirst.getDay() + 1) / 7,
-            );
-            setData("semaine_nom", `Semaine ${weekNumber} - ${date.getFullYear()}`);
-        }
-    }, [data.date_debut]);
+
+    const searchMembres = (event) => {
+        if (!data.selected_lab_id) return;
+
+        axios.get(`/api/labs/${data.selected_lab_id}/membres`, {
+            params: { query: event.query }
+        })
+            .then(res => {
+                console.log("Membres reçus", res.data);
+                // Sécurité : On vérifie si la réponse Laravel est bien un tableau pur
+                const dataReceived = Array.isArray(res.data)
+                    ? res.data
+                    : (res.data.data || []);
+
+                setMembres(dataReceived);
+            })
+            .catch(err => {
+                console.error("Erreur recherche membres", err);
+                setMembres([]); // On remet un tableau vide en cas d'erreur pour éviter le crash
+            });
+    };
 
     const handleMemberChange = (labId, jour, requisId, membreId) => {
         const newDesignations = { ...data.all_designations };
@@ -198,7 +245,7 @@ const CreateDesignation = ({ departements = [], membres = [] }) => {
                                                             <label className="block text-xs font-semibold uppercase truncate text-500">{req.role_tache?.libelle || req.libelle} :</label>
                                                         </div>
                                                         <div className="py-0 col-9">
-                                                            <Dropdown
+                                                            {/* <Dropdown
                                                                 value={data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || null}
                                                                 options={membres}
                                                                 optionLabel="nom"
@@ -208,6 +255,38 @@ const CreateDesignation = ({ departements = [], membres = [] }) => {
                                                                 style={{ height: "34px" }}
                                                                 filter
                                                                 onChange={(e) => handleMemberChange(currentLabConfig.id, conf.jour, req.id, e.value)}
+                                                            /> */}
+                                                            {/* <Dropdown
+                                                                value={data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || null}
+                                                                options={membres} // Utilise maintenant la liste locale rafraîchie par Axios
+                                                                optionLabel="nom"
+                                                                optionValue="id"
+                                                                placeholder="..."
+                                                                className="w-full text-xs p-inputtext-sm border-round-md"
+                                                                style={{ height: "34px" }}
+                                                                filter
+                                                                onChange={(e) => handleMemberChange(currentLabConfig.id, conf.jour, req.id, e.value)}
+                                                            /> */}
+                                                            <AutoComplete
+                                                                // 1. Sécurisation du .find() avec le chaînage optionnel (?.) ou une valeur de secours []
+                                                                value={
+                                                                    (Array.isArray(membres) ? membres : []).find(
+                                                                        m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
+                                                                    ) || data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || ''
+                                                                }
+                                                                // 2. Sécurisation des suggestions envoyées à PrimeReact
+                                                                suggestions={Array.isArray(membres) ? membres : []}
+                                                                completeMethod={searchMembres}
+                                                                field="nom"
+                                                                dropdown
+                                                                placeholder="Tapez un nom..."
+                                                                className="w-full text-xs"
+                                                                inputClassName="w-full p-inputtext-sm border-round-md"
+                                                                style={{ height: "34px" }}
+                                                                onChange={(e) => {
+                                                                    const selectedId = e.value?.id ? e.value.id : e.value;
+                                                                    handleMemberChange(currentLabConfig.id, conf.jour, req.id, selectedId);
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
