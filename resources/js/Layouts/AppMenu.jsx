@@ -36,12 +36,18 @@ const AppMenu = () => {
                     // On peut aussi filtrer par permission précise
                     visible: hasRole('admin') || hasPermission('view_users')
                 },
-                // {   
-                //     label: 'Configuration', 
-                //     icon: 'pi pi-fw pi-cog', 
-                //     to: '/admin/settings', 
-                //     // visible: hasPermission('view_users')
-                // },
+                {
+                    label: 'Permissions des groupes',
+                    icon: 'pi pi-fw pi-users',
+                    to: '/admin/permissions-pivot',
+                    visible: hasRole('admin') || hasPermission('view_groups')
+                },
+                {   
+                    label: 'Permissions & Rôles', 
+                    icon: 'pi pi-fw pi-cog', 
+                    to: '/admin/assignments', 
+                    visible: hasRole('admin')
+                },
                 {
                     label: 'Configuration des Requis',
                     icon: 'pi pi-fw pi-cog',

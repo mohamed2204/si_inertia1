@@ -17,15 +17,40 @@ class DesignationPageController extends Controller
 {
     public function index(Request $request)
     {
+        $user  = $request->user();
         $query = Designation::with(['sousDepartement.departement', 'createur']);
 
-        // 1. Recherche textuelle (MySQL LIKE)
-        // UTILISEZ $request->input() ou $request->search
+        // ==========================================
+        // SÉCURITÉ : Filtrage strict par Groupe / Sous-Département
+        // ==========================================
+        // Si ce n'est PAS un administrateur global (Direction)
+        if (! $user->groups()->where('name', 'Direction / Administration')->exists()) {
+
+            // On récupère les sous-départements autorisés pour cet utilisateur
+            $allowedSousDeptIds = $user->groups()
+                ->join('group_sous_departement', 'group_id', '=', 'group_sous_departement.groupe_id')
+                ->pluck('group_sous_departement.sous_departement_id')
+                ->toArray();
+
+            // On bloque immédiatement la requête sur ses périmètres autorisés
+            $query->whereIn('sous_departement_id', $allowedSousDeptIds);
+        }
+
+        dd($query->toSql(), $query->getBindings()); // Debug : voir la requête générée et les paramètres
+
+        // ==========================================
+        // FILTRES EXISTANTS (Modifiés pour la sécurité)
+        // ==========================================
+
+        // 1. Recherche textuelle (Encapsulée dans une fonction pour ne pas casser le whereIn de sécurité)
         $query->when($request->input('search'), function ($q, $search) {
-            $q->where('semaine_nom', 'LIKE', "%{$search}%")
-                ->orWhere('notes_generales', 'LIKE', "%{$search}%");
+            $q->where(function ($subQuery) use ($search) {
+                $subQuery->where('semaine_nom', 'LIKE', "%{$search}%")
+                    ->orWhere('notes_generales', 'LIKE', "%{$search}%");
+            });
         });
-        // 2. Filtre par Département (via la relation sousDepartement)
+
+        // 2. Filtre par Département
         $query->when($request->input('departement_id'), function ($q, $deptId) {
             $q->whereHas('sousDepartement', function ($sq) use ($deptId) {
                 $sq->where('departement_id', $deptId);
@@ -42,14 +67,49 @@ class DesignationPageController extends Controller
             $q->where('statut', $statut);
         });
 
-        //dd($query->toSql(), $query->getBindings()); // Debug : voir la requête générée et les paramètres
-
         // 5. Tri et Pagination
-        $results = $query->orderBy($request->input('sort_by') ?? 'date_debut', $request->input('sort_dir') ?? 'desc')
-            ->paginate($request->input('per_page') ?? 10);
+        $results = $query->orderBy(
+            $request->input('sort_by') ?? 'date_debut',
+            $request->input('sort_dir') ?? 'desc'
+        )->paginate($request->input('per_page') ?? 10);
 
         return response()->json($results);
     }
+    // public function index(Request $request)
+    // {
+    //     $query = Designation::with(['sousDepartement.departement', 'createur']);
+
+    //     // 1. Recherche textuelle (MySQL LIKE)
+    //     // UTILISEZ $request->input() ou $request->search
+    //     $query->when($request->input('search'), function ($q, $search) {
+    //         $q->where('semaine_nom', 'LIKE', "%{$search}%")
+    //             ->orWhere('notes_generales', 'LIKE', "%{$search}%");
+    //     });
+    //     // 2. Filtre par Département (via la relation sousDepartement)
+    //     $query->when($request->input('departement_id'), function ($q, $deptId) {
+    //         $q->whereHas('sousDepartement', function ($sq) use ($deptId) {
+    //             $sq->where('departement_id', $deptId);
+    //         });
+    //     });
+
+    //     // 3. Filtre par Sous-Département
+    //     $query->when($request->input('sous_departement_id'), function ($q, $sdId) {
+    //         $q->where('sous_departement_id', $sdId);
+    //     });
+
+    //     // 4. Filtre par Statut
+    //     $query->when($request->input('statut'), function ($q, $statut) {
+    //         $q->where('statut', $statut);
+    //     });
+
+    //     //dd($query->toSql(), $query->getBindings()); // Debug : voir la requête générée et les paramètres
+
+    //     // 5. Tri et Pagination
+    //     $results = $query->orderBy($request->input('sort_by') ?? 'date_debut', $request->input('sort_dir') ?? 'desc')
+    //         ->paginate($request->input('per_page') ?? 10);
+
+    //     return response()->json($results);
+    // }
 
     public function show(Designation $designation)
     {
@@ -65,8 +125,8 @@ class DesignationPageController extends Controller
         // Formater les sous-items pour l'état initial all_designations du Front React
         $formattedItems = [];
         foreach ($designation->items as $item) {
-           // Debug : vérifier les données de chaque item
-                                     // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
+                                                  // Debug : vérifier les données de chaque item
+                                                  // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
             $jour = $item->laboratoire_config_id; // Ajustez selon votre colonne réelle stockant le jour
 
             $formattedItems[$item->laboratoire_id][$jour][$item->laboratoire_config_id] = $item->membre_id;

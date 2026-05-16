@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
             guests: '/auth/login',
             users: '/'
         );
+        $middleware->alias([
+            'admin.group' => \App\Http\Middleware\EnsureUserIsAdminGroup::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //        pour rediriger vers la route nommée 'home' les 404

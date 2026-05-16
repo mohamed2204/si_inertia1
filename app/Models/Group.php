@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -39,10 +38,16 @@ class Group extends Model
     /**
      * Les sous-départements gérés par ce groupe
      */
-    public function sousDepartements(): BelongsToMany
+    // public function sousDepartements(): BelongsToMany
+    // {
+    //     // On précise le nom de la table pivot créée précédemment
+    //     return $this->belongsToMany(SousDepartement::class, 'group_sous_departement');
+    // }
+
+    public function sousDepartements()
     {
-        // On précise le nom de la table pivot créée précédemment
-        return $this->belongsToMany(SousDepartement::class, 'group_sous_departement');
+        return $this->belongsToMany(SousDepartement::class, 'group_sous_departement')
+            ->withPivot('niveau_acces'); // Crucial pour accéder à la colonne !
     }
 
     /**

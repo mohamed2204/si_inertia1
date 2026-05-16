@@ -11,6 +11,7 @@ import AppSidebar from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import AppConfig from './AppConfig';
 import { LayoutContext } from './context/layoutcontext';
+import Swal from "sweetalert2";
 //import { PrimeReactContext } from 'primereact/api';
 
 import { usePage } from '@inertiajs/react';

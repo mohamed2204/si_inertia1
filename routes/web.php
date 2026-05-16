@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\GroupPivotController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationPageController;
+use App\Http\Controllers\Admin\GroupAssignmentController;
+use App\Http\Controllers\Admin\GroupPivotController as AdminGroupPivotController;
 use App\Http\Controllers\LabRequisController;
 use App\Models\Membre;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +21,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', function () {
         return Inertia::render('Dashboard');
     })->name('home');
+
+    Route::get('/admin/assignments', [GroupAssignmentController::class, 'index'])->name('admin.assignments.index');
+    Route::put('/admin/assignments/{user}', [GroupAssignmentController::class, 'update'])->name('admin.assignments.update');
 
     // Version explicite (recommandée pour mieux contrôler vos URLs)
     // --- Routes Classiques (Gestion Administrative) ---
@@ -74,15 +80,18 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('Crud/Crud');
     });
 
-    /*
-       Alternative rapide :
-       Route::resource('designations', DesignationController::class);
-    */
 
-    // Route::get('pages/crud', function () {
-    //    // return Inertia::render('Crud');
-    //     return Inertia::render('Crud/Crud');
-    // })->name('crud');
+
+    // 2. Les routes d'administration sécurisées (Uniquement pour la Direction)
+    Route::middleware(['admin.group'])->group(function () {
+        // La page de la matrice pivot
+        Route::get('/admin/permissions-pivot', [GroupPivotController::class, 'index'])->name('admin.permissions.pivot.index');
+        Route::post('/admin/permissions-pivot/update', [GroupPivotController::class, 'updatePivot'])->name('admin.permissions.pivot.update');
+        
+        // La page d'affectation des utilisateurs aux groupes
+        Route::get('/admin/assignments', [GroupAssignmentController::class, 'index'])->name('admin.assignments.index');
+        Route::put('/admin/assignments/{user}', [GroupAssignmentController::class, 'update'])->name('admin.assignments.update');
+    });
 
     // Ajoute ici toutes tes autres pages Sakai (Profile, Settings, etc.)
     Route::get('/uikit/formlayout', function () {
@@ -90,26 +99,9 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// // Route pour afficher la page de login
-// Route::get('/auth/login', function () {
-//     //return Inertia::render('Auth/Login'); // Chemin relatif au dossier resources/js/Pages
-//     return Inertia::render('Auth/Login/Page');
-// })->name('login');
 
-// Route::get('/', function () {
-//     return Inertia::render('Dashboard');
-// })->name('home');;
-
-// Public login route
-// Route::middleware('guest:web')->group(function () {
-//     Route::get('/', function () {
-//         return Inertia::render('Auth/Login');
-//     })->name('login');
+// Route::middleware(['auth', 'verified'])->group(function () {
+//     Route::get('/admin/permissions-pivot', [AdminGroupPivotController::class, 'index'])->name('admin.permissions.pivot.index');
+//     Route::post('/admin/permissions-pivot/update', [AdminGroupPivotController::class, 'updatePivot'])->name('admin.permissions.pivot.update');
 // });
 
-// // Protected routes after login
-// Route::middleware('auth:web')->group(function () {
-//     Route::get('/dashboard', function () {
-//         return Inertia::render('Dashboard');
-//     })->name('dashboard');
-// });
