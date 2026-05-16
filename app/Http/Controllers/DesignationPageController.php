@@ -28,7 +28,7 @@ class DesignationPageController extends Controller
 
             // On récupère les sous-départements autorisés pour cet utilisateur
             $allowedSousDeptIds = $user->groups()
-                ->join('group_sous_departement', 'group_id', '=', 'group_sous_departement.groupe_id')
+                ->join('group_sous_departement', 'group.id', '=', 'group_sous_departement.group_id')
                 ->pluck('group_sous_departement.sous_departement_id')
                 ->toArray();
 
