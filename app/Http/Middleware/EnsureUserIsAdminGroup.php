@@ -16,7 +16,7 @@ class EnsureUserIsAdminGroup
         $user = $request->user();
 
         // Sécurité : On vérifie si l'utilisateur appartient au groupe de direction
-        if ($user && $user->groups()->where('name', 'Direction / Administration')->exists()) {
+        if ($user && $user->groups()->where('code', 'admin')->exists()) {
             return $next($request);
         }
 

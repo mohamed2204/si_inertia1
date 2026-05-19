@@ -1,13 +1,10 @@
 <?php
-
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 
 class SousDepartement extends Model
 {
@@ -18,7 +15,7 @@ class SousDepartement extends Model
     protected $table = 'sous_departements';
 
     protected $fillable = ['nom', 'departement_id'];
-    public $timestamps = true;
+    public $timestamps  = true;
 
     public function departement(): BelongsTo
     {
@@ -27,14 +24,15 @@ class SousDepartement extends Model
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'group_sous_departement');
+        return $this->belongsToMany(Group::class, 'group_sous_departement', 'sous_departement_id', 'group_id')
+                    ->withPivot('niveau_acces'); // Crucial pour votre matrice !
     }
 
     public function laboratoires(): HasMany
     {
         return $this->hasMany(Laboratoire::class);
     }
-    
+
     protected static function boot(): void
     {
         parent::boot();

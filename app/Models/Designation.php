@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Designation extends Model
@@ -38,7 +39,15 @@ class Designation extends Model
     {
         return $this->belongsTo(SousDepartement::class, 'sous_departement_id');
     }
-
+/**
+     * Les groupes qui ont des permissions spécifiques sur les désignations (Actions)
+     */
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'permissions_groupes', 'module_id', 'group_id')
+                    ->wherePivot('module_type', 'designations') // Parfait ici ![cite: 2]
+                    ->withPivot('type_action', 'module_type');
+    }
     public function createur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'createur_id');

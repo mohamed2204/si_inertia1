@@ -47,7 +47,7 @@ const api = {
 
     // Pour l'index, on évite le cache global pour avoir des données fraîches
     // mais on utilise l'apiClient pour la sécurité
-    getDesignationsIndex: (params) => apiClient.get('/designations', { params }),
+    getDesignationsIndex: (params) => apiClient.get('/designations-list', { params }),
 
     // --- NOUVELLE MÉTHODE AJOUTÉE ---
     /**

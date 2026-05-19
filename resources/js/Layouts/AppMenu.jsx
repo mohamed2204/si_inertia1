@@ -36,17 +36,23 @@ const AppMenu = () => {
                     // On peut aussi filtrer par permission précise
                     visible: hasRole('admin') || hasPermission('view_users')
                 },
-                {
-                    label: 'Permissions des groupes',
-                    icon: 'pi pi-fw pi-users',
-                    to: '/admin/permissions-pivot',
-                    visible: hasRole('admin') || hasPermission('view_groups')
-                },
+                // {
+                //     label: 'Permissions des groupes',
+                //     icon: 'pi pi-fw pi-users',
+                //     to: '/admin/permissions-pivot',
+                //     visible: hasRole('admin') || hasPermission('view_groups')
+                // },
                 {   
-                    label: 'Permissions & Rôles', 
+                    label: 'Utiliateurs et groupes', 
                     icon: 'pi pi-fw pi-cog', 
                     to: '/admin/assignments', 
                     visible: hasRole('admin')
+                },
+                {
+                    label: 'Permissions des modules',
+                    icon: 'pi pi-fw pi-shield',
+                    to: '/admin/permissions',
+                    visible: hasRole('admin') || hasPermission('view_permissions')
                 },
                 {
                     label: 'Configuration des Requis',
@@ -61,14 +67,14 @@ const AppMenu = () => {
             // Le groupe entier disparaît si l'utilisateur n'est pas admin
             visible: hasRole('admin') || hasPermission('view_designations'),
             items: [
+                // {
+                //     label: 'Designations1',
+                //     icon: 'pi pi-fw pi-cog',
+                //     to: '/designations',
+                //     visible: hasRole('admin') || hasPermission('view_designations')
+                // },
                 {
                     label: 'Designations',
-                    icon: 'pi pi-fw pi-cog',
-                    to: '/designations',
-                    visible: hasRole('admin') || hasPermission('view_designations')
-                },
-                {
-                    label: 'Designations api',
                     icon: 'pi pi-fw pi-cog',
                     to: '/designations-list',
                     visible: hasRole('admin') || hasPermission('view_designations')

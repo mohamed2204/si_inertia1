@@ -1,0 +1,128 @@
+<?php
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Group;
+use App\Models\SousDepartement;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+
+class PermissionController extends Controller
+{
+    public function index()
+    {
+        // 1. Liste des modules globaux de l'application
+        // Récupère automatiquement la liste depuis config/modules.php
+        $availableModules = config('modules.list');
+
+        $groupes = Group::all();
+
+        $modulePermissions = DB::table('permissions_groupes')
+            ->select('group_id', 'module_type', 'type_action')
+            ->get();
+
+        // 4. Formater les données pour l'onglet 2 : Sous-départements (Pivot)
+        //$sousDepartements = SousDepartement::all();
+
+        // On charge la relation 'departement' en même temps pour de meilleures performances
+        // 4. Formater les données pour l'onglet 2 : Sous-départements (Pivot) et trier par ordre A-Z
+        $sousDepartements = SousDepartement::with('departement')
+            ->get()
+            ->map(function ($sd) {
+                // Combinaison des noms (Département - Sous-Département)
+                $displayName = $sd->departement
+                    ? "{$sd->departement->nom} - {$sd->nom}"
+                    : $sd->nom;
+
+                return [
+                    'id'   => $sd->id,
+                    'nom' => $displayName,
+                ];
+            })
+            ->sortBy('nom') // Trie la collection par la clé 'nom' (Ordre A-Z)
+            ->values();      // Réinitialise les clés numériques du tableau pour éviter les problèmes de conversion JSON en React
+
+        $pivotPermissions = DB::table('group_sous_departement')
+            ->select('group_id', 'sous_departement_id', 'niveau_acces')
+            ->get();
+
+        return Inertia::render('Admin/AllPermissions', [
+            'groupes'           => $groupes,
+            'modules'           => $availableModules,
+            'sousDepartements'  => $sousDepartements,
+            'modulePermissions' => $modulePermissions,
+            'pivotPermissions'  => $pivotPermissions,
+        ]);
+    }
+
+    /**
+     * Alterne (Ajoute ou Supprime) une permission polymorphe globale pour un module.
+     */
+    public function toggleModulePermission(Request $request)
+    {
+        // 1. Validation stricte des données entrantes depuis la page React
+        $validated = $request->validate([
+            'group_id'    => 'required|exists:groups,id',
+            'module_type' => 'required|string',
+            'type_action' => 'required|string|in:lecture,modification,suppression',
+        ]);
+
+        // 2. Recherche si la permission existe déjà en base de données
+        $existing = DB::table('permissions_groupes')
+            ->where('group_id', $validated['group_id'])
+            ->where('module_type', $validated['module_type'])
+            ->where('type_action', $validated['type_action'])
+            ->first();
+
+        if ($existing) {
+            // Si elle existe, l'utilisateur a décoché la case -> On retire le droit
+            DB::table('permissions_groupes')->where('id', $existing->id)->delete();
+        } else {
+            // Si elle n'existe pas, l'utilisateur a coché la case -> On accorde le droit
+            DB::table('permissions_groupes')->insert([
+                'group_id'    => $validated['group_id'],
+                'module_type' => $validated['module_type'],
+                'type_action' => $validated['type_action'],
+                'module_id'   => null, // Reste à null car cela couvre l'intégralité du module global
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        }
+
+        // 3. Retourne sur la même vue en rafraîchissant les states d'Inertia
+        return redirect()->back();
+    }
+
+    /**
+     * Met à jour ou supprime l'accès pivot d'un groupe à un sous-département/labo.
+     */
+    public function updatePivotPermission(Request $request)
+    {
+        // 1. Validation stricte des données envoyées par les RadioButtons React
+        $validated = $request->validate([
+            'groupe_id'           => 'required|exists:groups,id',
+            'sous_departement_id' => 'required|exists:sous_departements,id',
+            'niveau_acces'        => 'required|in:aucune,lecture,ecriture,total',
+        ]);
+
+        // 2. Récupérer l'instance du groupe concerné
+        $group = Group::findOrFail($validated['groupe_id']);
+
+        // 3. Traitement selon la valeur sélectionnée
+        if ($validated['niveau_acces'] === 'aucune') {
+            // Si l'admin coche "Aucun", on supprime complètement la ligne dans la table pivot
+            $group->sousDepartements()->detach($validated['sous_departement_id']);
+        } else {
+            // Sinon, on insère ou on met à jour la colonne 'niveau_acces' sans toucher aux autres liaisons
+            $group->sousDepartements()->syncWithoutDetaching([
+                $validated['sous_departement_id'] => [
+                    'niveau_acces' => $validated['niveau_acces'],
+                ],
+            ]);
+        }
+
+        // 4. Rafraîchissement transparent des données côté React via Inertia
+        return redirect()->back();
+    }
+}

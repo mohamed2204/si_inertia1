@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\GroupAssignmentController;
 use App\Http\Controllers\Admin\GroupPivotController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationPageController;
-use App\Http\Controllers\Admin\GroupAssignmentController;
-use App\Http\Controllers\Admin\GroupPivotController as AdminGroupPivotController;
 use App\Http\Controllers\LabRequisController;
 use App\Models\Membre;
 use Illuminate\Support\Facades\Route;
@@ -31,14 +31,15 @@ Route::middleware(['auth'])->group(function () {
     // --- Routes de la Grille (Affichage Spécifique) ---
     // Notez le changement des noms pour éviter les conflits
     // 1. La route qui affiche la page Index (appelée une seule fois au chargement)
-    Route::get('/designations-list', function () {
-        return Inertia::render('Designations/IndexApi', [
-            'initialDepartments' => \App\Models\Departement::all(), // On passe les depts pour les filtres
-        ]);
-    })->name('designations.index.page');
+    // Route::get('/designations-list', function () {
+    //     return Inertia::render('Designations/IndexApi', [
+    //         'initialDepartments' => \App\Models\Departement::all(), // On passe les depts pour les filtres
+    //     ]);
+    // })->name('designations.index.page'); // pas controller php, c'est une page Inertia qui va faire les appels API ensuite
 
 // 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
-    Route::get('/designations', [DesignationPageController::class, 'index'])->name('designations.index');
+    Route::get('/designations-list', [DesignationPageController::class, 'index'])->name('designations.api.index'); 
+    //Route::get('/api/designations', [DesignationPageController::class, 'listApi'])->name('designations.list'); // C'est cette route qui est appelée par le service JS pour récupérer les données filtrées
     Route::get('/designations/create', [DesignationPageController::class, 'create'])->name('designations.create');
     Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])->name('designations.show');
     Route::get('/designations/{designation}/edit', [DesignationPageController::class, 'edit'])->name('designations.edit');
@@ -80,17 +81,22 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('Crud/Crud');
     });
 
-
-
     // 2. Les routes d'administration sécurisées (Uniquement pour la Direction)
     Route::middleware(['admin.group'])->group(function () {
         // La page de la matrice pivot
         Route::get('/admin/permissions-pivot', [GroupPivotController::class, 'index'])->name('admin.permissions.pivot.index');
         Route::post('/admin/permissions-pivot/update', [GroupPivotController::class, 'updatePivot'])->name('admin.permissions.pivot.update');
-        
+
         // La page d'affectation des utilisateurs aux groupes
         Route::get('/admin/assignments', [GroupAssignmentController::class, 'index'])->name('admin.assignments.index');
         Route::put('/admin/assignments/{user}', [GroupAssignmentController::class, 'update'])->name('admin.assignments.update');
+
+        // Page principale de gestion des modules
+        //Route::get('/admin/permissions/modules', [ModulePermissionController::class, 'index'])->name('permissions.modules.index');
+        Route::get('/admin/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+        // Traitement du basculement d'une action
+        Route::post('/admin/permissions/toggle', [PermissionController::class, 'toggleModulePermission'])->name('admin.permissions.modules.toggle');
+        Route::post('/admin/permissions/modules', [PermissionController::class, 'updatePivotPermission'])->name('admin.permissions.pivot.update');
     });
 
     // Ajoute ici toutes tes autres pages Sakai (Profile, Settings, etc.)
@@ -99,9 +105,13 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-
+// Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+//     // Page principale de gestion des modules
+//     Route::get('/permissions/modules', [ModulePermissionController::class, 'index'])->name('permissions.modules.index');
+//     // Traitement du basculement d'une action
+//     Route::post('/permissions/modules/toggle', [ModulePermissionController::class, 'togglePermission'])->name('permissions.modules.toggle');
+// });
 // Route::middleware(['auth', 'verified'])->group(function () {
 //     Route::get('/admin/permissions-pivot', [AdminGroupPivotController::class, 'index'])->name('admin.permissions.pivot.index');
 //     Route::post('/admin/permissions-pivot/update', [AdminGroupPivotController::class, 'updatePivot'])->name('admin.permissions.pivot.update');
 // });
-

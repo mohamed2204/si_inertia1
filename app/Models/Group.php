@@ -13,6 +13,21 @@ class Group extends Model
         'code',
     ];
 
+
+      /**
+     * Les utilisateurs qui appartiennent à ce groupe
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class);
+    }
+    
+    public function sousDepartements()
+    {
+        return $this->belongsToMany(SousDepartement::class, 'group_sous_departement', 'group_id', 'sous_departement_id')
+            ->withPivot('niveau_acces'); // Crucial pour accéder à la colonne !
+    }
+
     /**
      * Boot function pour générer le code automatiquement si vide
      */
@@ -27,13 +42,7 @@ class Group extends Model
         });
     }
 
-    /**
-     * Les utilisateurs qui appartiennent à ce groupe
-     */
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class);
-    }
+  
 
     /**
      * Les sous-départements gérés par ce groupe
@@ -44,12 +53,7 @@ class Group extends Model
     //     return $this->belongsToMany(SousDepartement::class, 'group_sous_departement');
     // }
 
-    public function sousDepartements()
-    {
-        return $this->belongsToMany(SousDepartement::class, 'group_sous_departement')
-            ->withPivot('niveau_acces'); // Crucial pour accéder à la colonne !
-    }
-
+    
     /**
      * Helper pour récupérer tous les laboratoires liés à ce groupe
      * (Via les sous-départements)

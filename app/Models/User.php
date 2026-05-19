@@ -81,6 +81,7 @@ class User extends Authenticatable
             'remember_token' => 'string',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'is_admin' => 'boolean', // Si vous avez une colonne is_admin
         ];
     }
 
@@ -122,7 +123,7 @@ class User extends Authenticatable
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class);
+        return $this->belongsToMany(Group::class, 'group_user', 'user_id', 'group_id');
     }
 
 //    public function hasRole($name): bool
