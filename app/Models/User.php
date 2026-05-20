@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -183,10 +184,15 @@ class User extends Authenticatable
         return $map[$sousDepartementId] ?? 'aucune';
     }
 
+    // 1. L'appartenance structurelle / principale (1 seul sous-dept)
+    public function sousDepartement(): BelongsTo
+    {
+        return $this->belongsTo(SousDepartement::class, 'sous_departement_id');
+    }
     public function sousDepartements(): BelongsToMany
     {
         return $this->belongsToMany(SousDepartement::class, 'sous_departement_user', 'user_id', 'sous_departement_id')
-                    ->withPivot('can_create', 'can_read', 'can_update', 'can_delete')
-                    ->withTimestamps();
+            ->withPivot('can_create', 'can_read', 'can_update', 'can_delete')
+            ->withTimestamps();
     }
 }

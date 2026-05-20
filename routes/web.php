@@ -110,6 +110,8 @@ Route::middleware(['auth'])->group(function () {
         // Traitement du basculement d'une action
         Route::post('/admin/permissions/toggle', [PermissionController::class, 'toggleModulePermission'])->name('admin.permissions.modules.toggle');
         Route::post('/admin/permissions/modules', [PermissionController::class, 'updatePivotPermission'])->name('admin.permissions.pivot.update');
+        // 🆕 La nouvelle route mise à jour et branchée sur le bon contrôleur :
+        Route::post('/admin/permissions/terrain/toggle', [PermissionController::class, 'togglePermission'])->name('admin.permissions.terrain.toggle');
     });
 
     // Ajoute ici toutes tes autres pages Sakai (Profile, Settings, etc.)

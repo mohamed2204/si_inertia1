@@ -62,9 +62,9 @@ class HandleInertiaRequests extends Middleware
                                                                                // automatiquement à certains groupes globaux (ex: le groupe 'Chef' ou 'Super_Admin')
                 $userRoles = $user->groups()->pluck('groups.code')->toArray(); // ou 'name'
 
-                if (in_array('Chef', $userRoles) || $user->hasPermissionTo('manage_matrix')) {
-                    $allowedModules[] = 'permissions.terrain';
-                }
+                // if (in_array('Chef', $userRoles) || $user->hasPermissionTo('manage_matrix')) {
+                //     $allowedModules[] = 'permissions.terrain';
+                // }
                 // dd($allowedModules); // Debug pour vérifier les modules autorisés pour l'utilisateur connecté
             }
         }

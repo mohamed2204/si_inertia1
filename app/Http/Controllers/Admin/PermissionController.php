@@ -159,6 +159,53 @@ class PermissionController extends Controller
     }
 
     /**
+     * Alterne les permissions CRUD sur les Sous-Départements pour un utilisateur spécifique.
+     */
+    public function togglePermission(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id'             => 'required|exists:users,id',
+            'sous_departement_id' => 'required|exists:sous_departements,id',
+            'permission'          => 'required|in:can_create,can_read,can_update,can_delete',
+            'value'               => 'required|boolean',
+        ]);
+
+        $userId = $validated['user_id'];
+        $sdId   = $validated['sous_departement_id'];
+        $column = $validated['permission'];
+        $value  = $validated['value'];
+
+        // Utilisation de updateOrInsert pour créer la ligne si elle n'existe pas encore
+        DB::table('sous_departement_user')->updateOrInsert(
+            [
+                'user_id'             => $userId,
+                'sous_departement_id' => $sdId,
+            ],
+            [
+                $column      => $value,
+                'updated_at' => now(),
+            ]
+        );
+
+        // Si la valeur passe à faux, on vérifie si on doit nettoyer la ligne devenue inutile
+        if (! $value) {
+            $row = DB::table('sous_departement_user')
+                ->where('user_id', $userId)
+                ->where('sous_departement_id', $sdId)
+                ->first();
+
+            if ($row && ! $row->can_create && ! $row->can_read && ! $row->can_update && ! $row->can_delete) {
+                DB::table('sous_departement_user')
+                    ->where('user_id', $userId)
+                    ->where('sous_departement_id', $sdId)
+                    ->delete();
+            }
+        }
+
+        return redirect()->back();
+    }
+
+    /**
      * Met à jour ou supprime l'accès pivot d'un groupe à un sous-département/labo.
      */
     public function updatePivotPermission(Request $request)

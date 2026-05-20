@@ -77,18 +77,18 @@ const AppMenu = () => {
                         to: '/admin/users',
                         visible: hasModuleAccess('users')
                     },
-                    {
-                        label: 'Utilisateurs et groupes',
-                        icon: 'pi pi-fw pi-cog',
-                        to: '/admin/assignments',
-                        visible: hasModuleAccess('users') // Ou un autre module spécifique
-                    },
-                    {
-                        label: 'Permissions des groupes',
-                        icon: 'pi pi-fw pi-users',
-                        to: '/admin/permissions-terrain',
-                        visible: hasModuleAccess('permissions.terrain') // Un module spécifique pour la gestion des groupes
-                    },
+                    // {
+                    //     label: 'Utilisateurs et groupes',
+                    //     icon: 'pi pi-fw pi-cog',
+                    //     to: '/admin/assignments',
+                    //     visible: hasModuleAccess('users') // Ou un autre module spécifique
+                    // },
+                    // {
+                    //     label: 'Permissions des groupes',
+                    //     icon: 'pi pi-fw pi-users',
+                    //     to: '/admin/permissions-terrain',
+                    //     visible: hasModuleAccess('permissions.terrain') // Un module spécifique pour la gestion des groupes
+                    // },
                     {
                         label: 'Permissions des modules',
                         icon: 'pi pi-fw pi-shield',
@@ -99,7 +99,7 @@ const AppMenu = () => {
                         label: 'Configuration des Requis',
                         icon: 'pi pi-fw pi-cog',
                         to: '/admin/laboratoires/requis',
-                        visible: hasModuleAccess('designations') || hasModuleAccess('designations')
+                        visible: hasModuleAccess('administration')
                     }
                 ]
             },

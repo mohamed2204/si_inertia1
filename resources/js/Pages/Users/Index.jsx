@@ -11,18 +11,19 @@ import { Tag } from 'primereact/tag';
 import axios from 'axios';
 import Layout from "@/Layouts/layout";
 
-export default function Index({ all_groups, can_create }) {
+export default function Index({ all_groups, all_sous_depts = [], can_create }) {
     const toast = useRef(null);
 
     // États pour le stockage des données de la DataTable
     const [tableData, setTableData] = useState({ data: [], total: 0 });
     const [loading, setLoading] = useState(true);
 
-    // Paramètres d'appel API synchronisés avec le useEffect
+    // Paramètres d'appel API synchronisés avec le useEffect (Ajout de sous_departement_id)
     const [params, setParams] = useState({
         page: 1,
         search: '',
         group_id: '',
+        sous_departement_id: '', // Nouveau filtre
         per_page: 10,
         sort_by: 'name',
         sort_dir: 'asc'
@@ -33,14 +34,15 @@ export default function Index({ all_groups, can_create }) {
     const [deleteDialog, setDeleteDialog] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    const emptyUser = { name: '', email: '', password: '', group_ids: [] };
+    // Nouveau champ initialisé dans la structure du formulaire
+    const emptyUser = { name: '', email: '', password: '', sous_departement_id: null, group_ids: [] };
     const [formData, setFormData] = useState(emptyUser);
     const [submitted, setSubmitted] = useState(false);
 
     // Effet déclenché à chaque changement de filtre, tri ou pagination
     useEffect(() => {
         loadUsers();
-    }, [params.page, params.search, params.group_id, params.sort_by, params.sort_dir, params.per_page]);
+    }, [params.page, params.search, params.group_id, params.sous_departement_id, params.sort_by, params.sort_dir, params.per_page]);
 
     const loadUsers = async () => {
         setLoading(true);
@@ -69,7 +71,8 @@ export default function Index({ all_groups, can_create }) {
         setFormData({
             name: user.name,
             email: user.email,
-            password: '', // On laisse vide par défaut (modification optionnelle)
+            password: '', 
+            sous_departement_id: user.sous_departement_id || null, // Hydratation du champ structurel
             group_ids: user.groups ? user.groups.map(g => g.id) : []
         });
         setSelectedUser(user);
@@ -121,7 +124,7 @@ export default function Index({ all_groups, can_create }) {
         }
     };
 
-    // Rendu des cellules spécifiques de la table
+    // Rendu des badges de groupes
     const groupsBodyTemplate = (rowData) => {
         return rowData.groups && rowData.groups.length > 0 ? (
             <div className="flex flex-wrap gap-1">
@@ -131,6 +134,15 @@ export default function Index({ all_groups, can_create }) {
             </div>
         ) : (
             <span className="text-gray-400 italic text-sm">Aucun groupe</span>
+        );
+    };
+
+    // Nouveau template pour afficher la structure d'appartenance principale
+    const deptBodyTemplate = (rowData) => {
+        return rowData.sous_departement ? (
+            <span className="font-medium text-gray-700">{rowData.sous_departement.nom}</span>
+        ) : (
+            <span className="text-gray-400 italic text-sm">Non affecté</span>
         );
     };
 
@@ -147,30 +159,47 @@ export default function Index({ all_groups, can_create }) {
         );
     };
 
-    // Éléments de structure de l'en-tête de la table
+    // En-tête de la table intégrant la recherche multicritères
     const renderHeader = () => {
         return (
             <div className="flex flex-wrap gap-3 justify-between align-items-center">
-                <span className="p-input-icon-left">
-                    <i className="pi pi-search" />
-                    <InputText
-                        value={params.search}
-                        onChange={(e) => setParams(prev => ({ ...prev, search: e.target.value, page: 1 }))}
-                        placeholder="Rechercher un utilisateur..."
+                <div className="flex flex-wrap gap-2 align-items-center">
+                    <span className="p-input-icon-left">
+                        <i className="pi pi-search" />
+                        <InputText
+                            value={params.search}
+                            onChange={(e) => setParams(prev => ({ ...prev, search: e.target.value, page: 1 }))}
+                            placeholder="Rechercher un utilisateur..."
+                            className="p-inputtext-sm"
+                        />
+                    </span>
+                    
+                    {/* Nouveau Dropdown de filtre par sous-département d'origine */}
+                    <Dropdown
+                        value={params.sous_departement_id}
+                        options={all_sous_depts}
+                        optionLabel="nom"
+                        optionValue="id"
+                        onChange={(e) => setParams(prev => ({ ...prev, sous_departement_id: e.value || '', page: 1 }))}
+                        placeholder="Filtrer par sous-département"
+                        showClear
+                        className="w-full md:w-15rem p-inputtext-sm"
                     />
-                </span>
-                <Dropdown
-                    value={params.group_id}
-                    options={all_groups}
-                    optionLabel="name"
-                    optionValue="id"
-                    onChange={(e) => setParams(prev => ({ ...prev, group_id: e.value || '', page: 1 }))}
-                    placeholder="Filtrer par groupe"
-                    showClear
-                    className="w-full md:w-14rem"
-                />
+
+                    <Dropdown
+                        value={params.group_id}
+                        options={all_groups}
+                        optionLabel="name"
+                        optionValue="id"
+                        onChange={(e) => setParams(prev => ({ ...prev, group_id: e.value || '', page: 1 }))}
+                        placeholder="Filtrer par groupe"
+                        showClear
+                        className="w-full md:w-13rem p-inputtext-sm"
+                    />
+                </div>
+
                 {can_create && (
-                    <Button label="Nouvel Utilisateur" icon="pi pi-plus" severity="success" onClick={openNew} />
+                    <Button label="Nouvel Utilisateur" icon="pi pi-plus" severity="success" size="small" onClick={openNew} />
                 )}
             </div>
         );
@@ -216,29 +245,49 @@ export default function Index({ all_groups, can_create }) {
                 >
                     <Column field="name" header="Nom Complet" sortable className="font-semibold" />
                     <Column field="email" header="Adresse Email" sortable />
+                    {/* Nouvelle colonne insérée pour afficher le lab d'appartenance */}
+                    <Column header="Sous-Département" body={deptBodyTemplate} />
                     <Column header="Groupes / Rôles Assignés" body={groupsBodyTemplate} />
                     <Column header="Actions" body={actionBodyTemplate} style={{ width: '100px' }} />
                 </DataTable>
 
                 {/* Dialog de Création / Édition */}
-                <Dialog visible={userDialog} style={{ width: '450px' }} header={selectedUser ? "Modifier l'utilisateur" : "Créer un utilisateur"} modal className="p-fluid" footer={dialogFooter} onHide={() => setUserDialog(false)}>
+                <Dialog visible={userDialog} style={{ width: '480px' }} header={selectedUser ? "Modifier l'utilisateur" : "Créer un utilisateur"} modal className="p-fluid" footer={dialogFooter} onHide={() => setUserDialog(false)}>
                     <div className="field mb-3">
                         <label htmlFor="name" className="font-bold block mb-1">Nom Complet</label>
                         <InputText id="name" value={formData.name} onChange={(e) => handleInputChange(e, 'name')} required className={submitted && !formData.name ? 'p-invalid' : ''} />
                         {submitted && !formData.name && <small className="p-error block mt-1">Le nom est requis.</small>}
                     </div>
+                    
                     <div className="field mb-3">
                         <label htmlFor="email" className="font-bold block mb-1">Adresse Email</label>
                         <InputText id="email" value={formData.email} onChange={(e) => handleInputChange(e, 'email')} required className={submitted && !formData.email ? 'p-invalid' : ''} />
                         {submitted && !formData.email && <small className="p-error block mt-1">L'adresse email est requise.</small>}
                     </div>
+                    
                     <div className="field mb-3">
                         <label htmlFor="password" className="font-bold block mb-1">Mot de passe {selectedUser && <span className="text-sm font-normal text-slate-400">(Laisser vide si inchangé)</span>}</label>
                         <InputText id="password" type="password" value={formData.password} onChange={(e) => handleInputChange(e, 'password')} required={!selectedUser} className={submitted && !selectedUser && !formData.password ? 'p-invalid' : ''} />
                         {submitted && !selectedUser && !formData.password && <small className="p-error block mt-1">Le mot de passe est requis pour un nouveau compte.</small>}
                     </div>
+
+                    {/* NOUVEAU : Sélecteur de l'appartenance structurelle principale */}
                     <div className="field mb-3">
-                        <label className="font-bold block mb-1">Groupes d'Accès</label>
+                        <label htmlFor="sous_departement_id" className="font-bold block mb-1">Sous-Département principal d'affectation</label>
+                        <Dropdown 
+                            id="sous_departement_id"
+                            value={formData.sous_departement_id} 
+                            options={all_sous_depts} 
+                            optionLabel="nom" 
+                            optionValue="id" 
+                            placeholder="Sélectionner le sous-département d'origine" 
+                            showClear
+                            onChange={(e) => setFormData(prev => ({ ...prev, sous_departement_id: e.value }))} 
+                        />
+                    </div>
+
+                    <div className="field mb-3">
+                        <label className="font-bold block mb-1">Groupes d'Accès (Matrice)</label>
                         <MultiSelect value={formData.group_ids} options={all_groups} optionLabel="name" optionValue="id" placeholder="Sélectionner un ou plusieurs groupes" maxSelectedLabels={3} onChange={(e) => setFormData(prev => ({ ...prev, group_ids: e.value }))} />
                     </div>
                 </Dialog>

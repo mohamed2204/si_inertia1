@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class SousDepartement extends Model
 {
@@ -20,6 +21,18 @@ class SousDepartement extends Model
     public function departement(): BelongsTo
     {
         return $this->belongsTo(Departement::class);
+    }
+
+    /**
+     * Accesseur pour obtenir le libellé combiné "Dept - Sous dept"
+     */
+    protected function nomComplet(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->departement 
+                ? "{$this->departement->nom} - {$this->nom}" 
+                : $this->nom
+        );
     }
 
     public function groups(): BelongsToMany

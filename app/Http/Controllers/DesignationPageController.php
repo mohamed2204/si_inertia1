@@ -18,80 +18,119 @@ class DesignationPageController extends Controller
 {
 
     public function index(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // 1. Sécurité de base avec la fonction centralisée
-    if (! $user->hasGlobalPermission('designations', 'lecture')) {
-        abort(403, "Vous n'avez pas accès au module des désignations.");
-    }
-
-    // 2. Récupération des flags globaux simplifiée
-    $hasAbsoluteView = $user->hasAbsoluteView();
-    $hasGlobalWrite  = $user->hasGlobalPermission('designations', 'modification');
-    $hasGlobalDelete = $user->hasGlobalPermission('designations', 'suppression');
-
-    $query = Designation::with(['sousDepartement.departement', 'createur']);
-
-    // =========================================================================
-    // SÉCURITÉ PÉRIMÉTRIQUE (SQL WHERE)
-    // =========================================================================
-    $userLabAccess = [];
-
-    if (! $hasAbsoluteView) {
-        $userLabAccess = $user->getLabAccessMap(); // Appel centralisé unique !
-        $query->whereIn('sous_departement_id', array_keys($userLabAccess));
-    }
-
-    // ... (La section APPLICATION DES FILTRES reste identique) ...
-
-    // Éxécution de la pagination
-    $paginatedResults = $query->orderBy(
-        $request->input('sort_by') ?? 'date_debut',
-        $request->input('sort_dir') ?? 'desc'
-    )->paginate($request->input('per_page') ?? 10);
-
-    // =========================================================================
-    // TRANSFORMATION LIGNE PAR LIGNE
-    // =========================================================================
-    $paginatedResults->through(function ($designation) use ($hasAbsoluteView, $userLabAccess, $hasGlobalWrite, $hasGlobalDelete) {
-        if ($hasAbsoluteView) {
-            $canEdit   = $hasGlobalWrite;
-            $canDelete = $hasGlobalDelete;
-        } else {
-            $labLevel  = $userLabAccess[$designation->sous_departement_id] ?? 'aucune';
-            $canEdit   = $hasGlobalWrite && in_array($labLevel, ['ecriture', 'total']);
-            $canDelete = $hasGlobalDelete && ($labLevel === 'total');
+        // 1. Sécurité de base avec la fonction fonctionnelle globale (Onglet 1)
+        if (! $user->hasGlobalPermission('designations', 'lecture')) {
+            abort(403, "Vous n'avez pas accès au module des désignations.");
         }
 
-        $designation->can_edit            = $canEdit;
-        $designation->can_delete          = $canDelete;
-        $designation->emplacement_formate = $designation->sousDepartement && $designation->sousDepartement->departement
-            ? "{$designation->sousDepartement->departement->nom} - {$designation->sousDepartement->nom}"
-            : ($designation->sousDepartement->nom ?? 'Non assigné');
+                                                     // 2. Récupération des flags globaux de l'onglet 1 (accès au bouton/action maître)
+        $hasAbsoluteView = $user->hasAbsoluteView(); // SuperAdmin ou assimilé
+        $hasGlobalWrite  = $user->hasGlobalPermission('designations', 'modification');
+        $hasGlobalDelete = $user->hasGlobalPermission('designations', 'suppression');
 
-        return $designation;
-    });
+        $query = Designation::with(['sousDepartement.departement', 'createur']);
 
-    // Calcul du droit de création global épuré
-    $groupIds = $user->groups()->pluck('groups.id')->toArray();
-    $canCreateGlobally = $hasGlobalWrite && (
-        $hasAbsoluteView || 
-        DB::table('group_sous_departement')->whereIn('group_id', $groupIds)->whereIn('niveau_acces', ['ecriture', 'total'])->exists()
-    );
+        // =========================================================================
+        // SÉCURITÉ PÉRIMÉTRIQUE TERRAIN (SQL WHERE)
+        // =========================================================================
+        $userPermissionsMap = [];
 
-    if ($request->wantsJson()) {
-        return response()->json($paginatedResults);
+        if (! $hasAbsoluteView) {
+            // Récupère uniquement les sous-départements où l'utilisateur a explicitement le droit de lire (can_read = 1)
+            $userPermissionsMap = DB::table('sous_departement_user')
+                ->where('user_id', $user->id)
+                ->where('can_read', true)
+                ->get()
+                ->keyBy('sous_departement_id')
+                ->toArray();
+
+            // Filtrage de la requête SQL
+            $query->whereIn('sous_departement_id', array_keys($userPermissionsMap));
+        }
+
+        // ... (La section APPLICATION DES FILTRES reste identique chez vous) ...
+
+        // Exécution de la pagination
+        $paginatedResults = $query->orderBy(
+            $request->input('sort_by') ?? 'date_debut',
+            $request->input('sort_dir') ?? 'desc'
+        )->paginate($request->input('per_page') ?? 10);
+
+        // =========================================================================
+        // TRANSFORMATION LIGNE PAR LIGNE (Vérification CRUD chirurgicale)
+        // =========================================================================
+        $paginatedResults->through(function ($designation) use ($hasAbsoluteView, $userPermissionsMap, $hasGlobalWrite, $hasGlobalDelete) {
+            if ($hasAbsoluteView) {
+                // Un admin possédant la vue absolue dépend uniquement des droits globaux du module
+                $canEdit   = $hasGlobalWrite;
+                $canDelete = $hasGlobalDelete;
+            } else {
+                // Récupération de la ligne d'affectation de l'utilisateur pour CE sous-département précis
+                $pivot = $userPermissionsMap[$designation->sous_departement_id] ?? null;
+
+                // Le droit d'édition final requiert le droit global ET le droit spécifique terrain (can_update)
+                $canEdit = $hasGlobalWrite && $pivot && (bool) $pivot->can_update;
+
+                // Le droit de suppression final requiert le droit global ET le droit spécifique terrain (can_delete)
+                $canDelete = $hasGlobalDelete && $pivot && (bool) $pivot->can_delete;
+            }
+
+            $designation->can_edit            = $canEdit;
+            $designation->can_delete          = $canDelete;
+            $designation->emplacement_formate = $designation->sousDepartement && $designation->sousDepartement->departement
+                ? "{$designation->sousDepartement->departement->nom} - {$designation->sousDepartement->nom}"
+                : ($designation->sousDepartement->nom ?? 'Non assigné');
+
+            return $designation;
+        });
+
+        // =========================================================================
+        // CALCUL DU DROIT DE CRÉATION GLOBAL (Pour afficher/masquer le bouton "Ajouter")
+        // =========================================================================
+        // L'utilisateur peut créer s'il a le droit global de modification ET :
+        // - Soit il a la vue absolue (SuperAdmin)
+        // - Soit il possède au moins un sous-département configuré avec "can_create = 1"
+        $canCreateGlobally = $hasGlobalWrite && (
+            $hasAbsoluteView ||
+            DB::table('sous_departement_user')
+                ->where('user_id', $user->id)
+                ->where('can_create', true)
+                ->exists()
+        );
+
+
+        // =========================================================================
+    // FILTRAGE DES DÉPARTEMENTS APPARENTS (Pour les filtres de l'interface)
+    // =========================================================================
+    if ($hasAbsoluteView) {
+        // Un administrateur avec vue absolue voit tous les départements
+        $departmentsForUser = Departement::orderBy('nom')->get();
+    } else {
+        // Un utilisateur standard ne voit que les départements des sous-départements autorisés
+        $authorizedSousDepartementIds = array_keys($userPermissionsMap);
+
+        $departmentsForUser = Departement::whereHas('sousDepartements', function ($query) use ($authorizedSousDepartementIds) {
+            $query->whereIn('id', $authorizedSousDepartementIds);
+        })
+        ->orderBy('nom')
+        ->get();
     }
 
-    return Inertia::render('Designations/IndexApi', [
-        'results'            => null,
-        'initialDepartments' => Departement::orderBy('nom')->get(),
-        'filters'            => $request->only(['search', 'departement_id', 'sous_departement_id', 'statut']),
-        'can_create'         => $canCreateGlobally,
-    ]);
-}
-    // public function index(Request $request)
+        if ($request->wantsJson()) {
+            return response()->json($paginatedResults);
+        }
+
+        return Inertia::render('Designations/IndexApi', [
+            'results'            => null,
+            'initialDepartments' => $departmentsForUser, //Departement::orderBy('nom')->get(),
+            'filters'            => $request->only(['search', 'departement_id', 'sous_departement_id', 'statut']),
+            'can_create'         => $canCreateGlobally,
+        ]);
+    }
+  
     // {
     //     $user = $request->user();
 
