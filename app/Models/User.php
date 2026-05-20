@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace App\Models;
 
@@ -8,8 +8,9 @@ use Carbon\Carbon;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -73,15 +74,15 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'id' => 'integer',
-            'name' => 'string',
-            'email' => 'string',
+            'id'                => 'integer',
+            'name'              => 'string',
+            'email'             => 'string',
             'email_verified_at' => 'datetime',
-            'password' => 'string',
-            'remember_token' => 'string',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-            'is_admin' => 'boolean', // Si vous avez une colonne is_admin
+            'password'          => 'string',
+            'remember_token'    => 'string',
+            'created_at'        => 'datetime',
+            'updated_at'        => 'datetime',
+            'is_admin'          => 'boolean', // Si vous avez une colonne is_admin
         ];
     }
 
@@ -110,29 +111,82 @@ class User extends Authenticatable
         return true; // ✅ Autorise tout en local le temps du débug
     }
 
-//    public function canAccessPanel(Panel $panel): bool
-//    {
-//        // L'admin doit pouvoir entrer, sinon redirection infinie
-//        return $this->hasRole(['admin', 'super_admin']);
-//    }
-
-//    public function roles(): BelongsToMany
-//    {
-//        return $this->belongsToMany(\Spatie\Permission\Models\Role::class);
-//    }
-
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class, 'group_user', 'user_id', 'group_id');
     }
 
-//    public function hasRole($name): bool
-//    {
-//        return $this->roles->contains('name', $name);
-//    }
-//
-//    public function hasAnyRole(array $names): bool
-//    {
-//        return $this->roles->whereIn('name', $names)->isNotEmpty();
-//    }
+    /**
+     * Vérifie si l'utilisateur possède une vue absolue (Admin ou Direction).
+     */
+    // public function hasAbsoluteView(): bool
+    // {
+    //     //dd($this); // Debug pour vérifier les données de l'utilisateur);
+    //     $flag = $this->is_admin || $this->groups()->whereIn('code', ['admin'])->orWhere('name', 'Direction / Administration')->exists();
+    //     dd($flag); // Debug pour vérifier le résultat de la vérification
+    //     return $flag;
+    // }
+    public function hasAbsoluteView(): bool
+    {
+        // Option A : Si vous utilisez la colonne 'is_admin' ou les groupes custom
+        return $this->is_admin || $this->groups()->where(function ($query) {
+            $query->whereIn('code', ['admin'])
+                ->orWhere('name', 'Direction / Administration');
+        })->exists();
+    }
+    /**
+     * Vérifie une permission globale basée sur les rôles/groupes de l'utilisateur.
+     */
+    public function hasGlobalPermission(string $module, string $action): bool
+    {
+        if ($this->hasAbsoluteView()) {
+            return true;
+        }
+
+        $groupIds = $this->groups()->pluck('groups.id')->toArray();
+
+        return DB::table('permissions_groupes')
+            ->whereIn('group_id', $groupIds)
+            ->where(['module_type' => $module, 'type_action' => $action])
+            ->exists();
+    }
+
+    /**
+     * Construit le dictionnaire complet des accès aux laboratoires [sous_departement_id => niveau_acces]
+     */
+    public function getLabAccessMap(): array
+    {
+        $groupIds = $this->groups()->pluck('groups.id')->toArray();
+
+        return DB::table('group_sous_departement')
+            ->whereIn('group_id', $groupIds)
+            ->get()
+            ->groupBy('sous_departement_id')
+            ->map(function ($items) {
+                $priorite = ['total' => 3, 'ecriture' => 2, 'lecture' => 1, 'aucune' => 0];
+                return $items->sortByDesc(fn($item) => $priorite[$item->niveau_acces] ?? 0)->first()->niveau_acces;
+            })
+            ->toArray();
+    }
+
+    /**
+     * Récupère le niveau d'accès spécifique pour un laboratoire donné.
+     */
+    public function getAccessLevelForLab(int $sousDepartementId): string
+    {
+        if ($this->hasAbsoluteView()) {
+            return 'total'; // Un admin a tous les droits par défaut partout
+        }
+
+        $map = $this->getLabAccessMap();
+
+        return $map[$sousDepartementId] ?? 'aucune';
+    }
+
+    public function sousDepartements(): BelongsToMany
+    {
+        return $this->belongsToMany(SousDepartement::class, 'sous_departement_user', 'user_id', 'sous_departement_id')
+                    ->withPivot('can_create', 'can_read', 'can_update', 'can_delete')
+                    ->withTimestamps();
+    }
 }

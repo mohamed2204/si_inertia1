@@ -25,7 +25,7 @@ class SousDepartement extends Model
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class, 'group_sous_departement', 'sous_departement_id', 'group_id')
-                    ->withPivot('niveau_acces'); // Crucial pour votre matrice !
+            ->withPivot('niveau_acces'); // Crucial pour votre matrice !
     }
 
     public function laboratoires(): HasMany
@@ -43,6 +43,13 @@ class SousDepartement extends Model
             ]);
             $group->sousDepartements()->attach($sousDepartement->id);
         });
+    }
+
+    public function utilisateurs()
+    {
+        return $this->belongsToMany(User::class, 'sous_departement_user')
+            ->withPivot('can_create', 'can_read', 'can_update', 'can_delete')
+            ->withTimestamps();
     }
 
 }

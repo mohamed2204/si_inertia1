@@ -1,18 +1,11 @@
-//'use client';
-//import { useRouter } from 'next/navigation';
-// import Link from 'next/link';
-// import { usePathname, useSearchParams } from 'next/navigation';
-
-import { Link, usePage } from '@inertiajs/react'; // Remplace next/link et usePathname
-
+/* eslint-disable @next/next/no-img-element */
+import { Link, usePage } from '@inertiajs/react';
 import { Ripple } from 'primereact/ripple';
 import { classNames } from 'primereact/utils';
-import React, { useEffect, useContext, useRef } from 'react'; // Ajout de useRef
+import React, { useEffect, useContext, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { MenuContext } from './context/menucontext';
-//import { AppMenuItemProps } from '@/types';
 
-// Si vous n'avez pas le fichier types, voici une interface rapide pour éviter les erreurs TS
 interface AppMenuItemProps {
     item?: any;
     index: number;
@@ -22,19 +15,17 @@ interface AppMenuItemProps {
 }
 
 const AppMenuitem = (props: AppMenuItemProps) => {
-    // const pathname = usePathname();
-    // const searchParams = useSearchParams();
-    // const { url } = usePage();
-    // const pathname = url.split('?')[0]; // Récupère le chemin actuel
-    // const { activeMenu, setActiveMenu } = useContext(MenuContext);
-    // const item = props.item;
-
-
     const { item, index, root, parentKey } = props;
+    
+    console.log('Rendering AppMenuitem:', item); // Debug pour vérifier les données de l'item
+
+    // 🛑 GAUDE-FOU 1 : Si l'élément entier est marqué caché, on n'affiche absolument rien
+    if (item && item.visible === false) {
+        return null;
+    }
 
     const menuContext = useContext(MenuContext);
 
-    // Si le contexte est null, on ne fait rien (ou on retourne null)
     if (!menuContext) {
         return null; 
     }
@@ -43,13 +34,11 @@ const AppMenuitem = (props: AppMenuItemProps) => {
     const { url } = usePage();
     const pathname = url.split('?')[0];
 
-    // 1. Création de la Ref pour corriger l'erreur findDOMNode
     const submenuRef = useRef(null);
-
     const key = parentKey ? parentKey + '-' + index : String(index);
-
     const isActiveRoute = item!.to && pathname === item!.to;
     const active = activeMenu === key || activeMenu.startsWith(key + '-');
+
     const onRouteChange = (currentUrl: string) => {
         if (item!.to && item!.to === currentUrl) {
             setActiveMenu(key);
@@ -57,91 +46,44 @@ const AppMenuitem = (props: AppMenuItemProps) => {
     };
 
     useEffect(() => {
-        // On extrait le pathname pour l'envoyer à la fonction de Sakai
         const currentPathname = url.split('?')[0];
         onRouteChange(currentPathname);
-
-        // On surveille 'url' au lieu de [pathname, searchParams]
-    }, [url]);
-
-    // useEffect(() => {
-    //     onRouteChange(pathname);
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [pathname, searchParams]);
-
-    useEffect(() => {
-        onRouteChange(pathname);
     }, [url]);
 
     const itemClick = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        //avoid processing disabled items
         if (item!.disabled) {
             event.preventDefault();
             return;
         }
 
-        //execute command
         if (item!.command) {
             item!.command({ originalEvent: event, item: item });
         }
 
-        // toggle active state
         if (item!.items) setActiveMenu(active ? (props.parentKey as string) : key);
         else setActiveMenu(key);
     };
 
-    // const subMenu = item!.items && item!.visible !== false && (
-    //     <CSSTransition timeout={{ enter: 1000, exit: 450 }} classNames="layout-submenu" in={props.root ? true : active} key={item!.label}>
-    //         <ul>
-    //             {item!.items.map((child, i) => {
-    //                 return <AppMenuitem item={child} index={i} className={child.badgeClass} parentKey={key} key={child.label} />;
-    //             })}
-    //         </ul>
-    //     </CSSTransition>
-    // );
-
-    // 2. Correction du SubMenu avec nodeRef
+    // 🛑 GARDE-FOU 2 : Sécurisation de la boucle interne des enfants
     const subMenu = item!.items && item!.visible !== false && (
         <CSSTransition 
             timeout={{ enter: 1000, exit: 450 }} 
             classNames="layout-submenu" 
             in={root ? true : active} 
             key={item!.label}
-            nodeRef={submenuRef} // Indispensable pour React 18/19
+            nodeRef={submenuRef}
             unmountOnExit
         >
-            <ul ref={submenuRef}> {/* On lie la ref ici */}
+            <ul ref={submenuRef}>
                 {item!.items.map((child: any, i: number) => {
+                    // Crucial : Si le sous-élément est invisible, on l'ignore complètement
+                    if (child.visible === false) return null;
+                    
                     return <AppMenuitem item={child} index={i} className={child.badgeClass} parentKey={key} key={child.label} />;
                 })}
             </ul>
         </CSSTransition>
     );
-
-    // return (
-    //     <li className={classNames({ 'layout-root-menuitem': props.root, 'active-menuitem': active })}>
-    //         {props.root && item!.visible !== false && <div className="layout-menuitem-root-text">{item!.label}</div>}
-    //         {(!item!.to || item!.items) && item!.visible !== false ? (
-    //             <a href={item!.url} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple')} target={item!.target} tabIndex={0}>
-    //                 <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
-    //                 <span className="layout-menuitem-text">{item!.label}</span>
-    //                 {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
-    //                 <Ripple />
-    //             </a>
-    //         ) : null}
-
-    //         {item!.to && !item!.items && item!.visible !== false ? (
-    //             <Link href={item!.to} replace={item!.replaceUrl} target={item!.target} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple', { 'active-route': isActiveRoute })} tabIndex={0}>
-    //                 <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
-    //                 <span className="layout-menuitem-text">{item!.label}</span>
-    //                 {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
-    //                 <Ripple />
-    //             </Link>
-    //         ) : null}
-
-    //         {subMenu}
-    //     </li>
-    // );
 
     return (
         <li className={classNames({ 'layout-root-menuitem': root, 'active-menuitem': active })}>
@@ -180,3 +122,186 @@ const AppMenuitem = (props: AppMenuItemProps) => {
 };
 
 export default AppMenuitem;
+
+// //'use client';
+// //import { useRouter } from 'next/navigation';
+// // import Link from 'next/link';
+// // import { usePathname, useSearchParams } from 'next/navigation';
+
+// import { Link, usePage } from '@inertiajs/react'; // Remplace next/link et usePathname
+
+// import { Ripple } from 'primereact/ripple';
+// import { classNames } from 'primereact/utils';
+// import React, { useEffect, useContext, useRef } from 'react'; // Ajout de useRef
+// import { CSSTransition } from 'react-transition-group';
+// import { MenuContext } from './context/menucontext';
+// //import { AppMenuItemProps } from '@/types';
+
+// // Si vous n'avez pas le fichier types, voici une interface rapide pour éviter les erreurs TS
+// interface AppMenuItemProps {
+//     item?: any;
+//     index: number;
+//     root?: boolean;
+//     parentKey?: string;
+//     className?: string;
+// }
+
+// const AppMenuitem = (props: AppMenuItemProps) => {
+//     // const pathname = usePathname();
+//     // const searchParams = useSearchParams();
+//     // const { url } = usePage();
+//     // const pathname = url.split('?')[0]; // Récupère le chemin actuel
+//     // const { activeMenu, setActiveMenu } = useContext(MenuContext);
+//     // const item = props.item;
+
+
+//     const { item, index, root, parentKey } = props;
+
+//     const menuContext = useContext(MenuContext);
+
+//     // Si le contexte est null, on ne fait rien (ou on retourne null)
+//     if (!menuContext) {
+//         return null; 
+//     }
+//     const { activeMenu, setActiveMenu } = menuContext;
+
+//     const { url } = usePage();
+//     const pathname = url.split('?')[0];
+
+//     // 1. Création de la Ref pour corriger l'erreur findDOMNode
+//     const submenuRef = useRef(null);
+
+//     const key = parentKey ? parentKey + '-' + index : String(index);
+
+//     const isActiveRoute = item!.to && pathname === item!.to;
+//     const active = activeMenu === key || activeMenu.startsWith(key + '-');
+//     const onRouteChange = (currentUrl: string) => {
+//         if (item!.to && item!.to === currentUrl) {
+//             setActiveMenu(key);
+//         }
+//     };
+
+//     useEffect(() => {
+//         // On extrait le pathname pour l'envoyer à la fonction de Sakai
+//         const currentPathname = url.split('?')[0];
+//         onRouteChange(currentPathname);
+
+//         // On surveille 'url' au lieu de [pathname, searchParams]
+//     }, [url]);
+
+//     // useEffect(() => {
+//     //     onRouteChange(pathname);
+//     //     // eslint-disable-next-line react-hooks/exhaustive-deps
+//     // }, [pathname, searchParams]);
+
+//     useEffect(() => {
+//         onRouteChange(pathname);
+//     }, [url]);
+
+//     const itemClick = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+//         //avoid processing disabled items
+//         if (item!.disabled) {
+//             event.preventDefault();
+//             return;
+//         }
+
+//         //execute command
+//         if (item!.command) {
+//             item!.command({ originalEvent: event, item: item });
+//         }
+
+//         // toggle active state
+//         if (item!.items) setActiveMenu(active ? (props.parentKey as string) : key);
+//         else setActiveMenu(key);
+//     };
+
+//     // const subMenu = item!.items && item!.visible !== false && (
+//     //     <CSSTransition timeout={{ enter: 1000, exit: 450 }} classNames="layout-submenu" in={props.root ? true : active} key={item!.label}>
+//     //         <ul>
+//     //             {item!.items.map((child, i) => {
+//     //                 return <AppMenuitem item={child} index={i} className={child.badgeClass} parentKey={key} key={child.label} />;
+//     //             })}
+//     //         </ul>
+//     //     </CSSTransition>
+//     // );
+
+//     // 2. Correction du SubMenu avec nodeRef
+//     const subMenu = item!.items && item!.visible !== false && (
+//         <CSSTransition 
+//             timeout={{ enter: 1000, exit: 450 }} 
+//             classNames="layout-submenu" 
+//             in={root ? true : active} 
+//             key={item!.label}
+//             nodeRef={submenuRef} // Indispensable pour React 18/19
+//             unmountOnExit
+//         >
+//             <ul ref={submenuRef}> {/* On lie la ref ici */}
+//                 {item!.items.map((child: any, i: number) => {
+//                     return <AppMenuitem item={child} index={i} className={child.badgeClass} parentKey={key} key={child.label} />;
+//                 })}
+//             </ul>
+//         </CSSTransition>
+//     );
+
+//     // return (
+//     //     <li className={classNames({ 'layout-root-menuitem': props.root, 'active-menuitem': active })}>
+//     //         {props.root && item!.visible !== false && <div className="layout-menuitem-root-text">{item!.label}</div>}
+//     //         {(!item!.to || item!.items) && item!.visible !== false ? (
+//     //             <a href={item!.url} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple')} target={item!.target} tabIndex={0}>
+//     //                 <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+//     //                 <span className="layout-menuitem-text">{item!.label}</span>
+//     //                 {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
+//     //                 <Ripple />
+//     //             </a>
+//     //         ) : null}
+
+//     //         {item!.to && !item!.items && item!.visible !== false ? (
+//     //             <Link href={item!.to} replace={item!.replaceUrl} target={item!.target} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple', { 'active-route': isActiveRoute })} tabIndex={0}>
+//     //                 <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+//     //                 <span className="layout-menuitem-text">{item!.label}</span>
+//     //                 {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
+//     //                 <Ripple />
+//     //             </Link>
+//     //         ) : null}
+
+//     //         {subMenu}
+//     //     </li>
+//     // );
+
+//     return (
+//         <li className={classNames({ 'layout-root-menuitem': root, 'active-menuitem': active })}>
+//             {root && item!.visible !== false && <div className="layout-menuitem-root-text">{item!.label}</div>}
+            
+//             {/* Cas sans lien (parent de menu) */}
+//             {(!item!.to || item!.items) && item!.visible !== false ? (
+//                 <a href={item!.url} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple')} target={item!.target} tabIndex={0}>
+//                     <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+//                     <span className="layout-menuitem-text">{item!.label}</span>
+//                     {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
+//                     <Ripple />
+//                 </a>
+//             ) : null}
+
+//             {/* Cas avec lien Inertia (Link) */}
+//             {item!.to && !item!.items && item!.visible !== false ? (
+//                 <Link 
+//                     href={item!.to} 
+//                     replace={item!.replaceUrl} 
+//                     target={item!.target} 
+//                     onClick={(e) => itemClick(e)} 
+//                     className={classNames(item!.class, 'p-ripple', { 'active-route': isActiveRoute })} 
+//                     tabIndex={0}
+//                 >
+//                     <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+//                     <span className="layout-menuitem-text">{item!.label}</span>
+//                     {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
+//                     <Ripple />
+//                 </Link>
+//             ) : null}
+
+//             {subMenu}
+//         </li>
+//     );
+// };
+
+// export default AppMenuitem;

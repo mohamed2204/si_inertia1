@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\GroupAssignmentController;
 use App\Http\Controllers\Admin\GroupPivotController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\SousDepartementUserController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationPageController;
 use App\Http\Controllers\LabRequisController;
@@ -22,6 +24,17 @@ Route::middleware(['auth'])->group(function () {
         return Inertia::render('Dashboard');
     })->name('home');
 
+    // Page principale de la matrice terrain
+    Route::get('/admin/permissions-terrain', [SousDepartementUserController::class, 'index'])->name('permissions.terrain.index');
+
+    // Traitement Ajax du switch de permission
+    Route::post('/admin/permissions-terrain/toggle', [SousDepartementUserController::class, 'togglePermission'])->name('permissions.terrain.toggle');
+
+    Route::get('/admin/users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/admin/users', [UserController::class, 'store'])->name('admin.users.store');
+    Route::put('/admin/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+    Route::delete('/admin/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+
     Route::get('/admin/assignments', [GroupAssignmentController::class, 'index'])->name('admin.assignments.index');
     Route::put('/admin/assignments/{user}', [GroupAssignmentController::class, 'update'])->name('admin.assignments.update');
 
@@ -38,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
     // })->name('designations.index.page'); // pas controller php, c'est une page Inertia qui va faire les appels API ensuite
 
 // 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
-    Route::get('/designations-list', [DesignationPageController::class, 'index'])->name('designations.api.index'); 
+    Route::get('/designations-list', [DesignationPageController::class, 'index'])->name('designations.api.index');
     //Route::get('/api/designations', [DesignationPageController::class, 'listApi'])->name('designations.list'); // C'est cette route qui est appelée par le service JS pour récupérer les données filtrées
     Route::get('/designations/create', [DesignationPageController::class, 'create'])->name('designations.create');
     Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])->name('designations.show');

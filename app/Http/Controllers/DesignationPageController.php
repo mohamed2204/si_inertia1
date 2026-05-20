@@ -18,154 +18,228 @@ class DesignationPageController extends Controller
 {
 
     public function index(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        // 1. Détection adaptative des rôles d'Administration et Direction
-        $isSuperAdmin    = $user->is_admin || $user->groups()->where('code', 'admin')->exists();
-        $isDirection     = $user->groups()->where('name', 'Direction / Administration')->exists();
-        $hasAbsoluteView = $isSuperAdmin || $isDirection;
-
-        // 2. Récupération des IDs de tous les groupes de l'utilisateur connecté
-        $userGroupIds = $user->groups()->pluck('groups.id')->toArray();
-
-        // 3. Vérification des permissions GLOBALES au niveau du module
-        $hasGlobalRead = $hasAbsoluteView || DB::table('permissions_groupes')
-            ->whereIn('group_id', $userGroupIds)
-            ->where(['module_type' => 'designations', 'type_action' => 'lecture'])
-            ->exists();
-
-        // Sécurité de base impérative : si pas de lecture globale accordée, accès interdit
-        if (! $hasGlobalRead) {
-            abort(403, "Vous n'avez pas accès au module des désignations.");
-        }
-
-        $hasGlobalWrite = $hasAbsoluteView || DB::table('permissions_groupes')
-            ->whereIn('group_id', $userGroupIds)
-            ->where(['module_type' => 'designations', 'type_action' => 'modification'])
-            ->exists();
-
-        $hasGlobalDelete = $hasAbsoluteView || DB::table('permissions_groupes')
-            ->whereIn('group_id', $userGroupIds)
-            ->where(['module_type' => 'designations', 'type_action' => 'suppression'])
-            ->exists();
-
-        // Préparer la requête SQL de base Eloquent
-        $query = Designation::with(['sousDepartement.departement', 'createur']);
-
-        // =========================================================================
-        // SÉCURITÉ ET DROITS PIVOTS LOCAUX (PÉRIMÈTRE DES LABOS)
-        // =========================================================================
-        $userLabAccess = [];
-
-        if (! $hasAbsoluteView) {
-            // Construction du dictionnaire des accès de l'utilisateur [sous_departement_id => niveau_acces]
-            $userLabAccess = DB::table('group_sous_departement')
-                ->whereIn('group_id', $userGroupIds)
-                ->get()
-                ->groupBy('sous_departement_id')
-                ->map(function ($items) {
-                    // En cas de multi-groupes aux droits conflictuels, on conserve le privilège le plus élevé
-                    $priorite = ['total' => 3, 'ecriture' => 2, 'lecture' => 1, 'aucune' => 0];
-                    return $items->sortByDesc(fn($item) => $priorite[$item->niveau_acces] ?? 0)->first()->niveau_acces;
-                })
-                ->toArray();
-
-            // Filtrage strict au niveau SQL : l'utilisateur ne voit que ses laboratoires assignés
-            $allowedSousDeptIds = array_keys($userLabAccess);
-            $query->whereIn('sous_departement_id', $allowedSousDeptIds);
-        }
-
-        // =========================================================================
-        // APPLICATION DES FILTRES DYNAMIQUES DE RECHERCHE
-        // =========================================================================
-        $query->when($request->input('search'), function ($q, $search) {
-            $q->where(function ($subQuery) use ($search) {
-                $subQuery->where('semaine_nom', 'LIKE', "%{$search}%")
-                    ->orWhere('notes_generales', 'LIKE', "%{$search}%");
-            });
-        });
-
-        $query->when($request->input('departement_id'), function ($q, $deptId) {
-            $q->whereHas('sousDepartement', function ($sq) use ($deptId) {
-                $sq->where('departement_id', $deptId);
-            });
-        });
-
-        $query->when($request->input('sous_departement_id'), function ($q, $sdId) {
-            $q->where('sous_departement_id', $sdId);
-        });
-
-        $query->when($request->input('statut'), function ($q, $statut) {
-            $q->where('statut', $statut);
-        });
-
-        // =========================================================================
-        // EXÉCUTION DE LA PAGINATION ET DES TRIS
-        // =========================================================================
-        $paginatedResults = $query->orderBy(
-            $request->input('sort_by') ?? 'date_debut',
-            $request->input('sort_dir') ?? 'desc'
-        )->paginate($request->input('per_page') ?? 10);
-
-        // =========================================================================
-        // TRANSFORMATION LIGNE PAR LIGNE (Injection des permissions d'action)
-        // =========================================================================
-        $paginatedResults->through(function ($designation) use ($hasAbsoluteView, $userLabAccess, $hasGlobalWrite, $hasGlobalDelete) {
-            // 1. Droits pour Admin ou Direction
-            if ($hasAbsoluteView) {
-                $canEdit   = $hasGlobalWrite;
-                $canDelete = $hasGlobalDelete;
-            }
-            // 2. Droits pour Utilisateur standard (déduits du dictionnaire des labos)
-            else {
-                $labLevel = $userLabAccess[$designation->sous_departement_id] ?? 'aucune';
-
-                // Modifier : Droit d'écriture global requis + niveau local 'ecriture' ou 'total'
-                $canEdit = $hasGlobalWrite && in_array($labLevel, ['ecriture', 'total']);
-
-                // Supprimer : Droit de suppression global requis + niveau local 'total' uniquement
-                $canDelete = $hasGlobalDelete && ($labLevel === 'total');
-            }
-
-            // Formatage de la chaîne d'emplacement combinée
-            $emplacement = $designation->sousDepartement && $designation->sousDepartement->departement
-                ? "{$designation->sousDepartement->departement->nom} - {$designation->sousDepartement->nom}"
-                : ($designation->sousDepartement->nom ?? 'Non assigné');
-
-            // Attachement des attributs virtuels consommés par React
-            $designation->can_edit            = $canEdit;
-            $designation->can_delete          = $canDelete;
-            $designation->emplacement_formate = $emplacement;
-
-            return $designation;
-        });
-
-        // Calcul du droit de création global (Vérifie si l'utilisateur possède au moins un labo en écriture/total)
-        $canCreateGlobally = $hasGlobalWrite && (
-            $hasAbsoluteView ||
-            DB::table('group_sous_departement')
-                ->whereIn('group_id', $userGroupIds)
-                ->whereIn('niveau_acces', ['ecriture', 'total'])
-                ->exists()
-        );
-
-        // =========================================================================
-        // AIGUILLAGE INTELLIGENT DE LA RÉPONSE
-        // =========================================================================
-        if ($request->wantsJson()) {
-            // Cas 1 : Requête Axios (Filtrage, Tri, Changement de page) -> Renvoi strict du flux JSON paginé
-            return response()->json($paginatedResults);
-        }
-
-        // Cas 2 : Premier chargement de la page -> Inertia rend le composant structurel
-        return Inertia::render('Designations/IndexApi', [
-            'results'            => null, // Le tableau démarre vide, Axios l'alimente immédiatement après le montage
-            'initialDepartments' => Departement::orderBy('nom')->get(),
-            'filters'            => $request->only(['search', 'departement_id', 'sous_departement_id', 'statut']),
-            'can_create'         => $canCreateGlobally,
-        ]);
+    // 1. Sécurité de base avec la fonction centralisée
+    if (! $user->hasGlobalPermission('designations', 'lecture')) {
+        abort(403, "Vous n'avez pas accès au module des désignations.");
     }
+
+    // 2. Récupération des flags globaux simplifiée
+    $hasAbsoluteView = $user->hasAbsoluteView();
+    $hasGlobalWrite  = $user->hasGlobalPermission('designations', 'modification');
+    $hasGlobalDelete = $user->hasGlobalPermission('designations', 'suppression');
+
+    $query = Designation::with(['sousDepartement.departement', 'createur']);
+
+    // =========================================================================
+    // SÉCURITÉ PÉRIMÉTRIQUE (SQL WHERE)
+    // =========================================================================
+    $userLabAccess = [];
+
+    if (! $hasAbsoluteView) {
+        $userLabAccess = $user->getLabAccessMap(); // Appel centralisé unique !
+        $query->whereIn('sous_departement_id', array_keys($userLabAccess));
+    }
+
+    // ... (La section APPLICATION DES FILTRES reste identique) ...
+
+    // Éxécution de la pagination
+    $paginatedResults = $query->orderBy(
+        $request->input('sort_by') ?? 'date_debut',
+        $request->input('sort_dir') ?? 'desc'
+    )->paginate($request->input('per_page') ?? 10);
+
+    // =========================================================================
+    // TRANSFORMATION LIGNE PAR LIGNE
+    // =========================================================================
+    $paginatedResults->through(function ($designation) use ($hasAbsoluteView, $userLabAccess, $hasGlobalWrite, $hasGlobalDelete) {
+        if ($hasAbsoluteView) {
+            $canEdit   = $hasGlobalWrite;
+            $canDelete = $hasGlobalDelete;
+        } else {
+            $labLevel  = $userLabAccess[$designation->sous_departement_id] ?? 'aucune';
+            $canEdit   = $hasGlobalWrite && in_array($labLevel, ['ecriture', 'total']);
+            $canDelete = $hasGlobalDelete && ($labLevel === 'total');
+        }
+
+        $designation->can_edit            = $canEdit;
+        $designation->can_delete          = $canDelete;
+        $designation->emplacement_formate = $designation->sousDepartement && $designation->sousDepartement->departement
+            ? "{$designation->sousDepartement->departement->nom} - {$designation->sousDepartement->nom}"
+            : ($designation->sousDepartement->nom ?? 'Non assigné');
+
+        return $designation;
+    });
+
+    // Calcul du droit de création global épuré
+    $groupIds = $user->groups()->pluck('groups.id')->toArray();
+    $canCreateGlobally = $hasGlobalWrite && (
+        $hasAbsoluteView || 
+        DB::table('group_sous_departement')->whereIn('group_id', $groupIds)->whereIn('niveau_acces', ['ecriture', 'total'])->exists()
+    );
+
+    if ($request->wantsJson()) {
+        return response()->json($paginatedResults);
+    }
+
+    return Inertia::render('Designations/IndexApi', [
+        'results'            => null,
+        'initialDepartments' => Departement::orderBy('nom')->get(),
+        'filters'            => $request->only(['search', 'departement_id', 'sous_departement_id', 'statut']),
+        'can_create'         => $canCreateGlobally,
+    ]);
+}
+    // public function index(Request $request)
+    // {
+    //     $user = $request->user();
+
+    //     // 1. Détection adaptative des rôles d'Administration et Direction
+    //     $isSuperAdmin    = $user->is_admin || $user->groups()->where('code', 'admin')->exists();
+    //     $isDirection     = $user->groups()->where('name', 'Direction / Administration')->exists();
+    //     $hasAbsoluteView = $isSuperAdmin || $isDirection;
+
+    //     // 2. Récupération des IDs de tous les groupes de l'utilisateur connecté
+    //     $userGroupIds = $user->groups()->pluck('groups.id')->toArray();
+
+    //     // 3. Vérification des permissions GLOBALES au niveau du module
+    //     $hasGlobalRead = $hasAbsoluteView || DB::table('permissions_groupes')
+    //         ->whereIn('group_id', $userGroupIds)
+    //         ->where(['module_type' => 'designations', 'type_action' => 'lecture'])
+    //         ->exists();
+
+    //     // Sécurité de base impérative : si pas de lecture globale accordée, accès interdit
+    //     if (! $hasGlobalRead) {
+    //         abort(403, "Vous n'avez pas accès au module des désignations.");
+    //     }
+
+    //     $hasGlobalWrite = $hasAbsoluteView || DB::table('permissions_groupes')
+    //         ->whereIn('group_id', $userGroupIds)
+    //         ->where(['module_type' => 'designations', 'type_action' => 'modification'])
+    //         ->exists();
+
+    //     $hasGlobalDelete = $hasAbsoluteView || DB::table('permissions_groupes')
+    //         ->whereIn('group_id', $userGroupIds)
+    //         ->where(['module_type' => 'designations', 'type_action' => 'suppression'])
+    //         ->exists();
+
+    //     // Préparer la requête SQL de base Eloquent
+    //     $query = Designation::with(['sousDepartement.departement', 'createur']);
+
+    //     // =========================================================================
+    //     // SÉCURITÉ ET DROITS PIVOTS LOCAUX (PÉRIMÈTRE DES LABOS)
+    //     // =========================================================================
+    //     $userLabAccess = [];
+
+    //     if (! $hasAbsoluteView) {
+    //         // Construction du dictionnaire des accès de l'utilisateur [sous_departement_id => niveau_acces]
+    //         $userLabAccess = DB::table('group_sous_departement')
+    //             ->whereIn('group_id', $userGroupIds)
+    //             ->get()
+    //             ->groupBy('sous_departement_id')
+    //             ->map(function ($items) {
+    //                 // En cas de multi-groupes aux droits conflictuels, on conserve le privilège le plus élevé
+    //                 $priorite = ['total' => 3, 'ecriture' => 2, 'lecture' => 1, 'aucune' => 0];
+    //                 return $items->sortByDesc(fn($item) => $priorite[$item->niveau_acces] ?? 0)->first()->niveau_acces;
+    //             })
+    //             ->toArray();
+
+    //         // Filtrage strict au niveau SQL : l'utilisateur ne voit que ses laboratoires assignés
+    //         $allowedSousDeptIds = array_keys($userLabAccess);
+    //         $query->whereIn('sous_departement_id', $allowedSousDeptIds);
+    //     }
+
+    //     // =========================================================================
+    //     // APPLICATION DES FILTRES DYNAMIQUES DE RECHERCHE
+    //     // =========================================================================
+    //     $query->when($request->input('search'), function ($q, $search) {
+    //         $q->where(function ($subQuery) use ($search) {
+    //             $subQuery->where('semaine_nom', 'LIKE', "%{$search}%")
+    //                 ->orWhere('notes_generales', 'LIKE', "%{$search}%");
+    //         });
+    //     });
+
+    //     $query->when($request->input('departement_id'), function ($q, $deptId) {
+    //         $q->whereHas('sousDepartement', function ($sq) use ($deptId) {
+    //             $sq->where('departement_id', $deptId);
+    //         });
+    //     });
+
+    //     $query->when($request->input('sous_departement_id'), function ($q, $sdId) {
+    //         $q->where('sous_departement_id', $sdId);
+    //     });
+
+    //     $query->when($request->input('statut'), function ($q, $statut) {
+    //         $q->where('statut', $statut);
+    //     });
+
+    //     // =========================================================================
+    //     // EXÉCUTION DE LA PAGINATION ET DES TRIS
+    //     // =========================================================================
+    //     $paginatedResults = $query->orderBy(
+    //         $request->input('sort_by') ?? 'date_debut',
+    //         $request->input('sort_dir') ?? 'desc'
+    //     )->paginate($request->input('per_page') ?? 10);
+
+    //     // =========================================================================
+    //     // TRANSFORMATION LIGNE PAR LIGNE (Injection des permissions d'action)
+    //     // =========================================================================
+    //     $paginatedResults->through(function ($designation) use ($hasAbsoluteView, $userLabAccess, $hasGlobalWrite, $hasGlobalDelete) {
+    //         // 1. Droits pour Admin ou Direction
+    //         if ($hasAbsoluteView) {
+    //             $canEdit   = $hasGlobalWrite;
+    //             $canDelete = $hasGlobalDelete;
+    //         }
+    //         // 2. Droits pour Utilisateur standard (déduits du dictionnaire des labos)
+    //         else {
+    //             $labLevel = $userLabAccess[$designation->sous_departement_id] ?? 'aucune';
+
+    //             // Modifier : Droit d'écriture global requis + niveau local 'ecriture' ou 'total'
+    //             $canEdit = $hasGlobalWrite && in_array($labLevel, ['ecriture', 'total']);
+
+    //             // Supprimer : Droit de suppression global requis + niveau local 'total' uniquement
+    //             $canDelete = $hasGlobalDelete && ($labLevel === 'total');
+    //         }
+
+    //         // Formatage de la chaîne d'emplacement combinée
+    //         $emplacement = $designation->sousDepartement && $designation->sousDepartement->departement
+    //             ? "{$designation->sousDepartement->departement->nom} - {$designation->sousDepartement->nom}"
+    //             : ($designation->sousDepartement->nom ?? 'Non assigné');
+
+    //         // Attachement des attributs virtuels consommés par React
+    //         $designation->can_edit            = $canEdit;
+    //         $designation->can_delete          = $canDelete;
+    //         $designation->emplacement_formate = $emplacement;
+
+    //         return $designation;
+    //     });
+
+    //     // Calcul du droit de création global (Vérifie si l'utilisateur possède au moins un labo en écriture/total)
+    //     $canCreateGlobally = $hasGlobalWrite && (
+    //         $hasAbsoluteView ||
+    //         DB::table('group_sous_departement')
+    //             ->whereIn('group_id', $userGroupIds)
+    //             ->whereIn('niveau_acces', ['ecriture', 'total'])
+    //             ->exists()
+    //     );
+
+    //     // =========================================================================
+    //     // AIGUILLAGE INTELLIGENT DE LA RÉPONSE
+    //     // =========================================================================
+    //     if ($request->wantsJson()) {
+    //         // Cas 1 : Requête Axios (Filtrage, Tri, Changement de page) -> Renvoi strict du flux JSON paginé
+    //         return response()->json($paginatedResults);
+    //     }
+
+    //     // Cas 2 : Premier chargement de la page -> Inertia rend le composant structurel
+    //     return Inertia::render('Designations/IndexApi', [
+    //         'results'            => null, // Le tableau démarre vide, Axios l'alimente immédiatement après le montage
+    //         'initialDepartments' => Departement::orderBy('nom')->get(),
+    //         'filters'            => $request->only(['search', 'departement_id', 'sous_departement_id', 'statut']),
+    //         'can_create'         => $canCreateGlobally,
+    //     ]);
+    // }
     // public function index(Request $request)
     // {
     //     $user = $request->user();
