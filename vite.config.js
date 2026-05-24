@@ -34,5 +34,12 @@ export default defineConfig({
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
+        host: '0.0.0.0', // Écoute sur toutes les adresses IP de la machine Debian
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: 'si-app.domain.lan', // L'adresse externe (ou IP) que vous tapez sur le PC client
+        },
     },
 });
+
