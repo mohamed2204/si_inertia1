@@ -1,15 +1,33 @@
-@import 'tailwindcss';
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
+/* @import 'tailwindcss'; */
 
+/* Remplacement du bloc 'content' de Tailwind v3 */
+@source '../../resources/views/**/*.blade.php';
+@source '../../resources/js/**/*.jsx';
+@source '../../resources/js/**/*.js';
 
+/* Inclusion de Filament si vos layouts ou composants en ont besoin */
+@source '../../resources/views/filament/**/*.blade.php';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
 
+/* Remplacement du bloc 'theme' de Tailwind v3 */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Si vous deviez étendre le thème plus tard, c'est ici (Exemple) : */
+    /* --color-brand-primary: #123456; */
+}
+
+/* Ajoutez ici vos styles personnalisés */
+/* Aligner le bouton "Nouvel Utilisateur" complètement à droite */
+.p-datatable-header .flex {
+    display: flex;
+    justify-content: space-between;
+    /* Pousse les éléments aux extrémités */
+    align-items: center;
+    width: 100%;
+}
+
+/* Si le bouton est seul dans un sous-bloc flex, on le pousse à droite */
+button.p-button-success {
+    margin-left: auto;
 }

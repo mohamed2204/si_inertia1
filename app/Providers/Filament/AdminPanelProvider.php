@@ -37,7 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->authGuard('web') // Vérifiez que c'est bien 'web'
             ->id('admin')
-            ->path('si')
+            ->path('adminsi')
             ->login()
             ->sidebarCollapsibleOnDesktop() // permet la réduction
             ->colors([

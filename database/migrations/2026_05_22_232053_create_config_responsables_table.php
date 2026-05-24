@@ -12,9 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('config_responsables', function (Blueprint $table) {
-            $table->id();
-            // Assurez-vous que le nom est EXACTEMENT le même que dans le code Filament
-            $table->foreignId('sous_departement_id')->constrained('sous_departements')->onDelete('cascade');
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('sous_departement_id');
             $table->string('libelle');
             $table->integer('ordre')->default(0);
             $table->timestamps();

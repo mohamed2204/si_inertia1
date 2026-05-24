@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tache', function (Blueprint $table) {
-            $table->id();
+        Schema::create('config_responsables', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('sous_departement_id');
+            $table->string('libelle');
+            $table->integer('ordre')->default(0);
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tache');
+        Schema::dropIfExists('config_responsables');
     }
 };

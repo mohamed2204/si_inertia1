@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('role_taches', function (Blueprint $table) {
-            $table->id();
-            $table->string('libelle'); // ex: Responsable 1, Remplaçant 1, Garde Vendredi
-            $table->string('categorie'); // ex: responsable, remplacant, quotidien
+        Schema::create('config_responsables', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('sous_departement_id');
+            $table->string('libelle');
+            $table->integer('ordre')->default(0);
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('table_role_taches');
+        Schema::dropIfExists('config_responsables');
     }
 };

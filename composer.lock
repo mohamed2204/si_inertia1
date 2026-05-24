@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bd9804fd9c7a08a924c9b4f551eb1557",
+    "content-hash": "94d8465cf14ef580cccca59f93fe268b",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11536,6 +11536,69 @@
             "time": "2026-01-23T15:03:22+00:00"
         },
         {
+            "name": "beyondcode/laravel-er-diagram-generator",
+            "version": "6.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/beyondcode/laravel-er-diagram-generator.git",
+                "reference": "3c49f1bd1df19b597cc28b9e392f97611a18aac3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/beyondcode/laravel-er-diagram-generator/zipball/3c49f1bd1df19b597cc28b9e392f97611a18aac3",
+                "reference": "3c49f1bd1df19b597cc28b9e392f97611a18aac3",
+                "shasum": ""
+            },
+            "require": {
+                "doctrine/dbal": "^3.3|^4.0",
+                "nikic/php-parser": "^4.0|^5.0",
+                "php": "^8.2",
+                "phpdocumentor/graphviz": "^1.0"
+            },
+            "require-dev": {
+                "larapack/dd": "^1.0",
+                "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+                "phpunit/phpunit": "^9.5.10|^10.5|^11.0|^12.0",
+                "spatie/phpunit-snapshot-assertions": "^4.2|^5.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "BeyondCode\\ErdGenerator\\ErdGeneratorServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "BeyondCode\\ErdGenerator\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marcel Pociot",
+                    "email": "marcel@beyondco.de",
+                    "homepage": "https://beyondcode.de",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Generate ER diagrams from your Laravel models.",
+            "homepage": "https://github.com/beyondcode/laravel-er-diagram-generator",
+            "keywords": [
+                "beyondcode",
+                "laravel-er-diagram-generator"
+            ],
+            "support": {
+                "issues": "https://github.com/beyondcode/laravel-er-diagram-generator/issues",
+                "source": "https://github.com/beyondcode/laravel-er-diagram-generator/tree/6.0.0"
+            },
+            "time": "2026-03-23T14:08:26+00:00"
+        },
+        {
             "name": "fakerphp/faker",
             "version": "v1.24.1",
             "source": {
@@ -11722,16 +11785,16 @@
         },
         {
             "name": "kitloong/laravel-migrations-generator",
-            "version": "v7.3.0",
+            "version": "v7.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/kitloong/laravel-migrations-generator.git",
-                "reference": "4e1f62bde791224f9a083d36f9fc30f18976891b"
+                "reference": "706366afcef5be8a01a92c3a12bfa04c01a1eed2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kitloong/laravel-migrations-generator/zipball/4e1f62bde791224f9a083d36f9fc30f18976891b",
-                "reference": "4e1f62bde791224f9a083d36f9fc30f18976891b",
+                "url": "https://api.github.com/repos/kitloong/laravel-migrations-generator/zipball/706366afcef5be8a01a92c3a12bfa04c01a1eed2",
+                "reference": "706366afcef5be8a01a92c3a12bfa04c01a1eed2",
                 "shasum": ""
             },
             "require": {
@@ -11784,7 +11847,7 @@
             ],
             "support": {
                 "issues": "https://github.com/kitloong/laravel-migrations-generator/issues",
-                "source": "https://github.com/kitloong/laravel-migrations-generator/tree/v7.3.0"
+                "source": "https://github.com/kitloong/laravel-migrations-generator/tree/v7.4.0"
             },
             "funding": [
                 {
@@ -11796,7 +11859,108 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-15T14:07:55+00:00"
+            "time": "2026-05-10T14:54:43+00:00"
+        },
+        {
+            "name": "laravel-shift/blueprint",
+            "version": "v2.13.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel-shift/blueprint.git",
+                "reference": "a7c74809d2b769d62a549104d96d02b524173fe5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel-shift/blueprint/zipball/a7c74809d2b769d62a549104d96d02b524173fe5",
+                "reference": "a7c74809d2b769d62a549104d96d02b524173fe5",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/console": ">=12.0",
+                "illuminate/database": ">=12.0",
+                "illuminate/filesystem": ">=12.0",
+                "illuminate/support": ">=12.0",
+                "laravel-shift/faker-registry": "^0.3.0",
+                "nunomaduro/termwind": "^2.3",
+                "symfony/yaml": ">=7.0"
+            },
+            "require-dev": {
+                "laravel/pint": "~1.25.0",
+                "mockery/mockery": "^1.4.4",
+                "orchestra/testbench": ">=9.0",
+                "phpunit/phpunit": "^11.5.3"
+            },
+            "suggest": {
+                "jasonmccreary/laravel-test-assertions": "Required to use additional assertions in generated tests (^2.0)."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Blueprint\\BlueprintServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Blueprint\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "An expressive, human readable code generation tool.",
+            "keywords": [
+                "code generation",
+                "framework",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/laravel-shift/blueprint/issues",
+                "source": "https://github.com/laravel-shift/blueprint/tree/v2.13.0"
+            },
+            "time": "2025-11-13T20:57:52+00:00"
+        },
+        {
+            "name": "laravel-shift/faker-registry",
+            "version": "v0.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel-shift/faker-registry.git",
+                "reference": "968ab023b6c76c2f67cc474ba6d81fce8ff869a9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel-shift/faker-registry/zipball/968ab023b6c76c2f67cc474ba6d81fce8ff869a9",
+                "reference": "968ab023b6c76c2f67cc474ba6d81fce8ff869a9",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.0|^9.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Shift\\Faker\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jason McCreary",
+                    "email": "jason@pureconcepts.net"
+                }
+            ],
+            "description": "A registry for generating Faker data from a name or data type.",
+            "support": {
+                "issues": "https://github.com/laravel-shift/faker-registry/issues",
+                "source": "https://github.com/laravel-shift/faker-registry/tree/v0.3.0"
+            },
+            "time": "2023-11-24T15:54:02+00:00"
         },
         {
             "name": "laravel/pail",
@@ -12439,6 +12603,51 @@
                 "source": "https://github.com/php-debugbar/php-debugbar/tree/v2.2.6"
             },
             "time": "2025-12-22T13:21:32+00:00"
+        },
+        {
+            "name": "phpdocumentor/graphviz",
+            "version": "1.0.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpDocumentor/GraphViz.git",
+                "reference": "a906a90a9f230535f25ea31caf81b2323956283f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpDocumentor/GraphViz/zipball/a906a90a9f230535f25ea31caf81b2323956283f",
+                "reference": "a906a90a9f230535f25ea31caf81b2323956283f",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "phpDocumentor": [
+                        "src/",
+                        "tests/unit"
+                    ]
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mike van Riel",
+                    "email": "mike.vanriel@naenius.com"
+                }
+            ],
+            "support": {
+                "issues": "https://github.com/phpDocumentor/GraphViz/issues",
+                "source": "https://github.com/phpDocumentor/GraphViz/tree/master"
+            },
+            "time": "2016-02-02T13:00:08+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -14069,8 +14278,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2",
-        "ext-iconv": "*",
-        "ext-xdebug": "*"
+        "ext-iconv": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

@@ -1,0 +1,14 @@
+models:
+    Decision: {  }
+    Departement: {  }
+    Designation: {  }
+    DesignationItem: {  }
+    Grade: {  }
+    Group: {  }
+    Laboratoire: {  }
+    LaboratoireConfig: {  }
+    LaboratoireConfigRequis: {  }
+    Membre: {  }
+    RoleTache: {  }
+    SousDepartement: {  }
+    User: {  }

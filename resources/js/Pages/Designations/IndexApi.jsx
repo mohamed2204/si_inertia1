@@ -225,10 +225,12 @@ export default function Index({ initialDepartments, filters, can_create }) {
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold text-gray-800 m-0">Liste des Désignations</h2>
                         {can_create && (
-                            <Link href="/designations/create">
-                                <Button label="Nouvelle Désignation" icon="pi pi-plus" className="p-button-sm p-button-success" />
-                            </Link>
-                        )}
+    <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: '1rem' }}>
+        <Link href="/designations/create">
+            <Button label="Nouvelle Désignation" icon="pi pi-plus" className="p-button-sm p-button-success" />
+        </Link>
+    </div>
+)}
                     </div>
 
                     {/* TABLEAU */}
