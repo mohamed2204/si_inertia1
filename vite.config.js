@@ -4,12 +4,14 @@ import react from '@vitejs/plugin-react'
 // import tailwindcss from '@tailwindcss/vite';
 import path from 'path'; // <--- AJOUTEZ CETTE LIGNE
 import { fileURLToPath } from 'url'; // Importez ces deux utilitaires
+import basicSsl from '@vitejs/plugin-basic-ssl'; // 1. Importez le plugin
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
     plugins: [
+        basicSsl(), // 2. Ajoutez-le aux plugins
         laravel({
             input: ['resources/js/app.jsx', 'resources/css/app.css'],
             refresh: true,
@@ -34,11 +36,15 @@ export default defineConfig({
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
-        host: '0.0.0.0', // Écoute sur toutes les adresses IP de la machine Debian
+        host: '0.0.0.0', // Permet l'accès depuis l'extérieur
         port: 5173,
         strictPort: true,
+        cors: true,      // Autorise explicitement les requêtes cross-origin de Nginx
+        origin: 'https://si-app.domain.lan', // Dit à Vite que son origine publique est Nginx en HTTPS
         hmr: {
-            host: 'si-app.domain.lan', // L'adresse externe (ou IP) que vous tapez sur le PC client
+            protocol: 'wss',
+            host: 'si-app.domain.lan',
+            clientPort: 443,
         },
     },
 });
