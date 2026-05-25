@@ -34,7 +34,12 @@ export default defineConfig({
     },
     server: {
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            // ⚠️ On indique à Vite d'ignorer complètement ces dossiers lourds
+            ignored: [
+                '**/node_modules/**',
+                '**/vendor/**',
+                '**/storage/framework/views/**'
+            ],
         },
         host: '0.0.0.0', // Permet l'accès depuis l'extérieur
         port: 5173,
