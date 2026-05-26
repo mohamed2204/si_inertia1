@@ -9,9 +9,11 @@ import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Tag } from "primereact/tag";
-import { InputText } from 'primereact/inputtext';
-import { Dropdown } from 'primereact/dropdown';
-import { Paginator } from 'primereact/paginator';
+import { InputText } from "primereact/inputtext";
+import { Dropdown } from "primereact/dropdown";
+import { Paginator } from "primereact/paginator";
+import { IconField } from "primereact/iconfield";
+import { InputIcon } from "primereact/inputicon";
 
 export default function Index({ initialDepartments, filters, can_create }) {
     const [tableData, setTableData] = useState({
@@ -35,7 +37,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
     const [params, setParams] = useState({
         page: filters?.page || 1,
         search: filters?.search || "",
-        departement_id: filters?.departement_id || filters?.department_id || "", 
+        departement_id: filters?.departement_id || filters?.department_id || "",
         sous_departement_id: filters?.sous_departement_id || "",
         statut: filters?.statut || "",
         per_page: 10,
@@ -60,10 +62,14 @@ export default function Index({ initialDepartments, filters, can_create }) {
 
     const getStatusSeverity = (status) => {
         switch (status) {
-            case "valide": return "success";
-            case "en_attente": return "warning";
-            case "rejete": return "danger";
-            default: return "secondary";
+            case "valide":
+                return "success";
+            case "en_attente":
+                return "warning";
+            case "rejete":
+                return "danger";
+            default:
+                return "secondary";
         }
     };
 
@@ -90,7 +96,10 @@ export default function Index({ initialDepartments, filters, can_create }) {
                 )}
 
                 {!rowData.can_edit && !rowData.can_delete && (
-                    <i className="pi pi-lock text-400" title="Lecture seule"></i>
+                    <i
+                        className="pi pi-lock text-400"
+                        title="Lecture seule"
+                    ></i>
                 )}
             </div>
         );
@@ -101,8 +110,10 @@ export default function Index({ initialDepartments, filters, can_create }) {
         try {
             const response = await api.getDesignationsIndex(params);
             console.log("Réponse API des désignations :", response.data);
-            
-            const resData = response.data?.results ? response.data.results : response.data;
+
+            const resData = response.data?.results
+                ? response.data.results
+                : response.data;
 
             setTableData({
                 data: resData.data || [],
@@ -121,7 +132,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
         loadDesignations();
     }, [
         params.page,
-        params.departement_id, 
+        params.departement_id,
         params.sous_departement_id,
         params.statut,
         params.search,
@@ -140,11 +151,11 @@ export default function Index({ initialDepartments, filters, can_create }) {
     const handleDeptChange = async (deptId) => {
         setParams((prev) => ({
             ...prev,
-            departement_id: deptId, 
+            departement_id: deptId,
             sous_departement_id: "",
             page: 1,
         }));
-        
+
         if (deptId) {
             const data = await api.getSousDepts(deptId);
             setOptions((prev) => ({ ...prev, sousDepartements: data }));
@@ -169,9 +180,17 @@ export default function Index({ initialDepartments, filters, can_create }) {
                 try {
                     await api.deleteDesignation(id);
                     loadDesignations();
-                    Swal.fire("Supprimé !", "La désignation a été supprimée.", "success");
+                    Swal.fire(
+                        "Supprimé !",
+                        "La désignation a été supprimée.",
+                        "success",
+                    );
                 } catch (error) {
-                    Swal.fire("Erreur", "Impossible de supprimer cette donnée.", "error");
+                    Swal.fire(
+                        "Erreur",
+                        "Impossible de supprimer cette donnée.",
+                        "error",
+                    );
                 }
             }
         });
@@ -197,8 +216,22 @@ export default function Index({ initialDepartments, filters, can_create }) {
 
                     {/* BARRE DE FILTRES CORRIGÉE ET ALIGNÉE */}
                     <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white p-4 rounded-lg shadow-sm items-center justify-between w-full">
-
                         {/* Recherche */}
+                        <div className="w-full sm:w-1/4 inline-flex items-center">
+                            <IconField className="w-full">
+                                <InputIcon className="pi pi-search" />
+                                <InputText
+                                    type="text"
+                                    placeholder="Rechercher une semaine..."
+                                    className="w-full p-inputtext-sm"
+                                    onChange={(e) =>
+                                        debouncedSearch(e.target.value)
+                                    }
+                                />
+                            </IconField>
+                        </div>
+                        {/*
+                        
                         <div className="w-full sm:w-1/4 inline-flex items-center">
                             <span className="p-input-icon-left w-full flex items-center">
                                 <i className="pi pi-search" style={{ transform: 'translateY(-50%)', top: '50%' }} />
@@ -210,7 +243,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
                                 />
                             </span>
                         </div>
-
+ /*}
                         {/* Select Départements */}
                         <div className="w-full sm:w-1/4">
                             <Dropdown
@@ -268,7 +301,15 @@ export default function Index({ initialDepartments, filters, can_create }) {
                     </div>
 
                     {/* Barre d'outils au-dessus du tableau */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: "1rem" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            marginBottom: "1rem",
+                        }}
+                    >
                         <h5 style={{ margin: 0, whiteSpace: "nowrap" }}>
                             Liste des Désignations
                         </h5>
@@ -300,38 +341,73 @@ export default function Index({ initialDepartments, filters, can_create }) {
                             sortOrder={params.sort_dir === "asc" ? 1 : -1}
                             onSort={handleSort}
                         >
-                            <Column field="semaine_nom" header="Semaine" sortable />
+                            <Column
+                                field="semaine_nom"
+                                header="Semaine"
+                                sortable
+                            />
                             <Column
                                 header="Département / Labo"
                                 field="emplacement_formate"
                                 sortable
-                                body={(rowData) => rowData.emplacement_formate || "N/A"}
+                                body={(rowData) =>
+                                    rowData.emplacement_formate || "N/A"
+                                }
                             />
-                            <Column field="date_debut" header="Date de début" body={dateBodyTemplate} sortable />
-                            <Column header="Statut" field="statut" body={statusBodyTemplate} sortable />
-                            <Column header="Créateur" body={(rowData) => rowData.createur?.name || "Inconnu"} />
+                            <Column
+                                field="date_debut"
+                                header="Date de début"
+                                body={dateBodyTemplate}
+                                sortable
+                            />
+                            <Column
+                                header="Statut"
+                                field="statut"
+                                body={statusBodyTemplate}
+                                sortable
+                            />
+                            <Column
+                                header="Créateur"
+                                body={(rowData) =>
+                                    rowData.createur?.name || "Inconnu"
+                                }
+                            />
                             <Column
                                 body={actionBodyTemplate}
                                 header="Actions"
-                                headerStyle={{ width: "12rem", textAlign: "center" }}
-                                bodyStyle={{ textAlign: "center", overflow: "visible" }}
+                                headerStyle={{
+                                    width: "12rem",
+                                    textAlign: "center",
+                                }}
+                                bodyStyle={{
+                                    textAlign: "center",
+                                    overflow: "visible",
+                                }}
                             />
                         </DataTable>
 
                         {/* CONFIGURATION DE LA PAGINATION */}
                         <div className="p-1 bg-gray-50 border-t flex items-center justify-between">
                             <Paginator
-                                first={(params.page - 1) * (params.per_page || 10)}
+                                first={
+                                    (params.page - 1) * (params.per_page || 10)
+                                }
                                 rows={params.per_page || 10}
                                 totalRecords={tableData.total || 0}
                                 template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
                                 currentPageReportTemplate="Total: {totalRecords} désignations"
                                 onPageChange={(e) => {
                                     const nextPage = e.page + 1;
-                                    setParams((prev) => ({ ...prev, page: nextPage }));
+                                    setParams((prev) => ({
+                                        ...prev,
+                                        page: nextPage,
+                                    }));
                                 }}
                                 className="w-full bg-transparent border-none p-0 text-sm flex justify-between items-center"
-                                style={{ height: 'auto', padding: '0.25rem 0.5rem' }}
+                                style={{
+                                    height: "auto",
+                                    padding: "0.25rem 0.5rem",
+                                }}
                             />
                         </div>
                     </div>
