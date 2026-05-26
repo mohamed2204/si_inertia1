@@ -353,7 +353,7 @@ const CreateDesignation = ({ departements = [] }) => {
                             ))}
                         </div> */}
                         <div className="grid">
-                            {currentLab.config_jours?.map((conf) => (
+                            {currentLabConfig.config_jours?.map((conf) => (
                                 <div
                                     key={conf.id || conf.jour}
                                     className="p-2 col-12 md:col-6 xl:col-4"
@@ -421,7 +421,7 @@ const CreateDesignation = ({ departements = [] }) => {
                                                                 value={
                                                                     data
                                                                         .all_designations[
-                                                                        currentLab
+                                                                        currentLabConfig
                                                                             .id
                                                                     ]?.[
                                                                         conf
@@ -443,7 +443,7 @@ const CreateDesignation = ({ departements = [] }) => {
                                                                 filter
                                                                 onChange={(e) =>
                                                                     handleMemberChange(
-                                                                        currentLab.id,
+                                                                        currentLabConfig.id,
                                                                         conf.jour,
                                                                         req.id,
                                                                         e.value,
