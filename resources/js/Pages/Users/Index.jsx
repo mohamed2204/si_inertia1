@@ -257,21 +257,6 @@ export default function Index({ all_groups, all_sous_depts = [], can_create }) {
                                 className="w-full"
                             />
                         </IconField>
-                        {/* <span className="p-input-icon-left">
-                            <i className="pi pi-search" />
-                            <InputText
-                                value={params.search}
-                                onChange={(e) =>
-                                    setParams((prev) => ({
-                                        ...prev,
-                                        search: e.target.value,
-                                        page: 1,
-                                    }))
-                                }
-                                placeholder="Nom, email..."
-                                className="w-full"
-                            />
-                        </span> */}
                     </div>
 
                     {/* 2. Filtre Sous-Département */}

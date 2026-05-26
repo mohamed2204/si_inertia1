@@ -6,15 +6,14 @@ import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import axios from "axios"; // Import axios
-import Swal from 'sweetalert2';
-import { AutoComplete } from 'primereact/autocomplete'; // N'oubliez pas l'import !
+import Swal from "sweetalert2";
+import { AutoComplete } from "primereact/autocomplete"; // N'oubliez pas l'import !
 
 const CreateDesignation = ({ departements = [] }) => {
     // États pour les données chargées dynamiquement via Axios
     const [sousDepts, setSousDepts] = useState([]);
     const [labs, setLabs] = useState([]);
     const [currentLabConfig, setCurrentLabConfig] = useState(null);
-
 
     // 2. Nouvel état local pour stocker les membres du labo sélectionné
     const [membres, setMembres] = useState([]); // Doit impérativement être []
@@ -32,9 +31,10 @@ const CreateDesignation = ({ departements = [] }) => {
     // 1. Charger les Sous-Départements quand le Département change
     useEffect(() => {
         if (data.departement_id) {
-            axios.get(`/api/departments/${data.departement_id}/sous-departments`)
-                .then(res => setSousDepts(res.data))
-                .catch(err => console.error("Erreur sous-depts", err));
+            axios
+                .get(`/api/departments/${data.departement_id}/sous-departments`)
+                .then((res) => setSousDepts(res.data))
+                .catch((err) => console.error("Erreur sous-depts", err));
         } else {
             setSousDepts([]);
         }
@@ -43,9 +43,10 @@ const CreateDesignation = ({ departements = [] }) => {
     // 2. Charger les Laboratoires quand le Sous-Département change
     useEffect(() => {
         if (data.sous_departement_id) {
-            axios.get(`/api/sous-departements/${data.sous_departement_id}/labs`)
-                .then(res => setLabs(res.data))
-                .catch(err => console.error("Erreur labs", err));
+            axios
+                .get(`/api/sous-departements/${data.sous_departement_id}/labs`)
+                .then((res) => setLabs(res.data))
+                .catch((err) => console.error("Erreur labs", err));
         } else {
             setLabs([]);
         }
@@ -77,22 +78,25 @@ const CreateDesignation = ({ departements = [] }) => {
             const weekNumber = Math.ceil(
                 ((date - janFirst) / 8.64e7 + janFirst.getDay() + 1) / 7,
             );
-            setData("semaine_nom", `Semaine ${weekNumber} - ${date.getFullYear()}`);
+            setData(
+                "semaine_nom",
+                `Semaine ${weekNumber} - ${date.getFullYear()}`,
+            );
         }
     }, [data.date_debut]);
-
 
     // 3. Charger la config ET les membres quand le Labo est sélectionné
     // On ne charge plus les membres ici !
     useEffect(() => {
         if (data.selected_lab_id) {
             setLoading(true);
-            axios.get(`/api/labs/${data.selected_lab_id}/config`)
-                .then(res => {
+            axios
+                .get(`/api/labs/${data.selected_lab_id}/config`)
+                .then((res) => {
                     setCurrentLabConfig(res.data);
                     setLoading(false);
                 })
-                .catch(err => {
+                .catch((err) => {
                     console.error("Erreur config labo", err);
                     setLoading(false);
                 });
@@ -101,23 +105,23 @@ const CreateDesignation = ({ departements = [] }) => {
         }
     }, [data.selected_lab_id]);
 
-
     const searchMembres = (event) => {
         if (!data.selected_lab_id) return;
 
-        axios.get(`/api/labs/${data.selected_lab_id}/membres`, {
-            params: { query: event.query }
-        })
-            .then(res => {
+        axios
+            .get(`/api/labs/${data.selected_lab_id}/membres`, {
+                params: { query: event.query },
+            })
+            .then((res) => {
                 console.log("Membres reçus", res.data);
                 // Sécurité : On vérifie si la réponse Laravel est bien un tableau pur
                 const dataReceived = Array.isArray(res.data)
                     ? res.data
-                    : (res.data.data || []);
+                    : res.data.data || [];
 
                 setMembres(dataReceived);
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error("Erreur recherche membres", err);
                 setMembres([]); // On remet un tableau vide en cas d'erreur pour éviter le crash
             });
@@ -143,26 +147,37 @@ const CreateDesignation = ({ departements = [] }) => {
 
         // 3. IMPORTANT : On passe "payload" en PREMIER argument pour écraser les données soumises
         // Le deuxième argument contient les options (onError, onSuccess)
-        post(route("designations.api.store"), {
-            ...payload, // On injecte les données modifiées directement ici
-            browser_timezone: userTimeZone, // On glisse le fuseau horaire ici !
-        }, {
-            onError: (errs) => {
-                const firstError = Object.values(errs)[0];
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erreur',
-                    text: firstError || "Vérifiez le formulaire",
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
+        post(
+            route("designations.api.store"),
+            {
+                ...payload, // On injecte les données modifiées directement ici
+                browser_timezone: userTimeZone, // On glisse le fuseau horaire ici !
             },
-            onSuccess: () => {
-                Swal.fire({ icon: 'success', title: 'Enregistré !', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-            }
-        });
+            {
+                onError: (errs) => {
+                    const firstError = Object.values(errs)[0];
+                    Swal.fire({
+                        icon: "error",
+                        title: "Erreur",
+                        text: firstError || "Vérifiez le formulaire",
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                },
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Enregistré !",
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                },
+            },
+        );
     };
 
     return (
@@ -178,14 +193,16 @@ const CreateDesignation = ({ departements = [] }) => {
                 <div className="grid p-3 mb-5 bg-bluegray-50 border-round-xl border-1 border-100">
                     {/* Date et Nom Semaine */}
                     <div className="col-12 md:col-6 lg:col-2">
-                        <label className="block mb-1 text-xs font-bold text-600">DATE DEBUT</label>
+                        <label className="block mb-1 text-xs font-bold text-600">
+                            DATE DEBUT
+                        </label>
                         <Calendar
                             value={data.date_debut}
                             onChange={(e) => setData("date_debut", e.value)}
                             showIcon
                             dateFormat="dd/mm/yy"
                             // Si errors.date_debut existe, on applique la classe 'p-invalid'
-                            className={`w-full ${errors.date_debut ? 'p-invalid' : ''}`}
+                            className={`w-full ${errors.date_debut ? "p-invalid" : ""}`}
                         />
                         {/* Affichage du texte de l'erreur en dessous du calendrier */}
                         {errors.date_debut && (
@@ -195,26 +212,45 @@ const CreateDesignation = ({ departements = [] }) => {
                         )}
                     </div>
                     <div className="col-12 md:col-6 lg:col-2">
-                        <label className="block mb-1 text-xs font-bold text-600">NOM SEMAINE</label>
-                        <InputText value={data.semaine_nom} onChange={(e) => setData("semaine_nom", e.target.value)} className="w-full" />
+                        <label className="block mb-1 text-xs font-bold text-600">
+                            NOM SEMAINE
+                        </label>
+                        <InputText
+                            value={data.semaine_nom}
+                            onChange={(e) =>
+                                setData("semaine_nom", e.target.value)
+                            }
+                            className="w-full"
+                        />
                     </div>
 
                     {/* SELECTS DÉPENDANTS AXIOS */}
                     <div className="col-12 md:col-4 lg:col-2">
-                        <label className="block mb-1 text-xs font-bold text-600">DÉPARTEMENT</label>
+                        <label className="block mb-1 text-xs font-bold text-600">
+                            DÉPARTEMENT
+                        </label>
                         <Dropdown
                             value={data.departement_id}
                             options={departements}
                             optionLabel="nom"
                             optionValue="id"
                             placeholder="Sélectionner..."
-                            onChange={(e) => setData(d => ({ ...d, departement_id: e.value, sous_departement_id: null, selected_lab_id: null }))}
+                            onChange={(e) =>
+                                setData((d) => ({
+                                    ...d,
+                                    departement_id: e.value,
+                                    sous_departement_id: null,
+                                    selected_lab_id: null,
+                                }))
+                            }
                             className="w-full"
                         />
                     </div>
 
                     <div className="col-12 md:col-4 lg:col-3">
-                        <label className="block mb-1 text-xs font-bold text-600">SOUS-DÉPARTEMENT</label>
+                        <label className="block mb-1 text-xs font-bold text-600">
+                            SOUS-DÉPARTEMENT
+                        </label>
                         <Dropdown
                             value={data.sous_departement_id}
                             options={sousDepts} // Utilise l'état local axios
@@ -222,13 +258,21 @@ const CreateDesignation = ({ departements = [] }) => {
                             optionValue="id"
                             placeholder="Choisir..."
                             disabled={!data.departement_id}
-                            onChange={(e) => setData(d => ({ ...d, sous_departement_id: e.value, selected_lab_id: null }))}
+                            onChange={(e) =>
+                                setData((d) => ({
+                                    ...d,
+                                    sous_departement_id: e.value,
+                                    selected_lab_id: null,
+                                }))
+                            }
                             className="w-full"
                         />
                     </div>
 
                     <div className="col-12 md:col-4 lg:col-3">
-                        <label className="block mb-1 text-xs font-bold text-blue-700">LABORATOIRE CIBLE</label>
+                        <label className="block mb-1 text-xs font-bold text-blue-700">
+                            LABORATOIRE CIBLE
+                        </label>
                         <Dropdown
                             value={data.selected_lab_id}
                             options={labs} // Utilise l'état local axios
@@ -237,24 +281,31 @@ const CreateDesignation = ({ departements = [] }) => {
                             placeholder="Choisir le labo"
                             className="w-full border-blue-200 shadow-1"
                             disabled={!data.sous_departement_id}
-                            onChange={(e) => setData("selected_lab_id", e.value)}
+                            onChange={(e) =>
+                                setData("selected_lab_id", e.value)
+                            }
                         />
                     </div>
                 </div>
 
                 {/* GRILLE DYNAMIQUE */}
                 {loading ? (
-                    <div className="p-8 text-center"><i className="pi pi-spin pi-spinner text-4xl text-blue-500"></i><p>Chargement de la grille...</p></div>
+                    <div className="p-8 text-center">
+                        <i className="pi pi-spin pi-spinner text-4xl text-blue-500"></i>
+                        <p>Chargement de la grille...</p>
+                    </div>
                 ) : currentLabConfig ? (
                     <div className="fadein animation-duration-400">
                         <div className="flex gap-2 mb-4 align-items-center">
                             <span className="flex p-2 text-white bg-blue-500 border-round-md align-items-center justify-content-center">
                                 <i className="text-xl pi pi-building"></i>
                             </span>
-                            <h3 className="m-0 tracking-tight uppercase text-700">{currentLabConfig.nom}</h3>
+                            <h3 className="m-0 tracking-tight uppercase text-700">
+                                {currentLabConfig.nom}
+                            </h3>
                         </div>
 
-                        <div className="grid">
+                        {/* <div className="grid">
                             {currentLabConfig.config_jours?.map((conf) => (
                                 <div key={conf.id} className="p-2 col-12 md:col-6 xl:col-4">
                                     <div className="h-full overflow-hidden bg-white border-1 border-200 border-round-xl shadow-1">
@@ -300,16 +351,130 @@ const CreateDesignation = ({ departements = [] }) => {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </div> */}
+                        <div className="grid">
+                            {currentLab.config_jours?.map((conf) => (
+                                <div
+                                    key={conf.id || conf.jour}
+                                    className="p-2 col-12 md:col-6 xl:col-4"
+                                >
+                                    {/* CONTENEUR CARTE ADAPTATIF */}
+                                    <div className="h-full overflow-hidden surface-card border-1 surface-border border-round-xl shadow-1">
+                                        {/* HEADER DYNAMIQUE */}
+                                        <div
+                                            className="p-3 text-center"
+                                            style={{
+                                                backgroundColor:
+                                                    conf.type_config === "fixe"
+                                                        ? "var(--primary-200, #959ce0d5)"
+                                                        : "var(--surface-200, #d1d5dbd5)",
+                                                color:
+                                                    conf.type_config === "fixe"
+                                                        ? "var(--primary-900)"
+                                                        : "var(--text-color)",
+                                            }}
+                                        >
+                                            <span className="text-sm font-bold tracking-wider uppercase">
+                                                {conf.jour_label ||
+                                                    `Jour ${conf.jour}`}
+                                            </span>
+                                        </div>
 
+                                        {/* CORPS DE CARTE ADAPTATIF */}
+                                        <div
+                                            className="p-3"
+                                            style={{
+                                                backgroundColor:
+                                                    conf.type_config === "fixe"
+                                                        ? "var(--primary-50, rgba(157, 190, 238, 0.15))"
+                                                        : "transparent",
+                                            }}
+                                        >
+                                            {/* Empilement des lignes */}
+                                            <div className="flex gap-3 flex-column">
+                                                {conf.requis?.map((req) => (
+                                                    <div
+                                                        key={req.id}
+                                                        className="grid p-0 m-0 align-items-center"
+                                                    >
+                                                        {/* Libellé à gauche adapté au thème */}
+                                                        <div className="py-0 col-3">
+                                                            <label
+                                                                className="block text-xs font-semibold uppercase truncate text-color-secondary text-left"
+                                                                title={
+                                                                    req
+                                                                        .role_tache
+                                                                        ?.libelle ||
+                                                                    req.libelle
+                                                                }
+                                                            >
+                                                                {req.role_tache
+                                                                    ?.libelle ||
+                                                                    req.libelle}{" "}
+                                                                :
+                                                            </label>
+                                                        </div>
+
+                                                        {/* Dropdown à droite */}
+                                                        <div className="py-0 col-9">
+                                                            <Dropdown
+                                                                value={
+                                                                    data
+                                                                        .all_designations[
+                                                                        currentLab
+                                                                            .id
+                                                                    ]?.[
+                                                                        conf
+                                                                            .jour
+                                                                    ]?.[
+                                                                        req.id
+                                                                    ] || null
+                                                                }
+                                                                options={
+                                                                    membres
+                                                                }
+                                                                optionLabel="nom"
+                                                                optionValue="id"
+                                                                placeholder="..."
+                                                                className="w-full text-xs p-inputtext-sm border-round-md"
+                                                                style={{
+                                                                    height: "34px",
+                                                                }}
+                                                                filter
+                                                                onChange={(e) =>
+                                                                    handleMemberChange(
+                                                                        currentLab.id,
+                                                                        conf.jour,
+                                                                        req.id,
+                                                                        e.value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                         <div className="flex pt-4 mt-6 justify-content-end border-top-1">
-                            <Button label="Enregistrer la planification" icon="pi pi-check" className="px-5 py-3 font-bold p-button-success border-round-xl shadow-3" loading={processing} onClick={submit} />
+                            <Button
+                                label="Enregistrer la planification"
+                                icon="pi pi-check"
+                                className="px-5 py-3 font-bold p-button-success border-round-xl shadow-3"
+                                loading={processing}
+                                onClick={submit}
+                            />
                         </div>
                     </div>
                 ) : (
                     <div className="flex p-8 mt-4 text-center border-2 border-dashed border-200 border-round-xl bg-gray-50 flex-column align-items-center">
                         <i className="mb-3 text-4xl pi pi-info-circle text-200"></i>
-                        <p className="text-lg text-500">Sélectionnez un laboratoire pour afficher la grille.</p>
+                        <p className="text-lg text-500">
+                            Sélectionnez un laboratoire pour afficher la grille.
+                        </p>
                     </div>
                 )}
             </div>

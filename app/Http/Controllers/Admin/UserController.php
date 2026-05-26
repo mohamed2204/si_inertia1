@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -110,6 +111,7 @@ class UserController extends Controller
             'email'               => $validated['email'],
             'password'            => Hash::make($validated['password']),
             'sous_departement_id' => $validated['sous_departement_id'] ?? null, // Assignation directe
+            'is_admin'           => false, // Par défaut, un nouvel utilisateur n'est pas admin
         ]);
 
         if (! empty($validated['group_ids'])) {

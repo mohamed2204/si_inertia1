@@ -1,6 +1,6 @@
 <?php
 
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Models;
 
@@ -62,8 +62,7 @@ class User extends Authenticatable
      *
      * @var array<string, mixed>
      */
-    protected $attributes = [
-    ];
+    protected $attributes = [];
 
     protected $hidden = [
         'password',
@@ -109,7 +108,8 @@ class User extends Authenticatable
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return true; // ✅ Autorise tout en local le temps du débug
+        //return true; // ✅ Autorise tout en local le temps du débug
+        return $this->hasRole('admin') || $this->hasRole('super_admin');
     }
 
     public function groups(): BelongsToMany

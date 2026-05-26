@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -74,51 +75,7 @@ class PermissionController extends Controller
             'affectations'      => $affectations, // 👈 Ajouté à la place de pivotPermissions
         ]);
     }
-    // public function index()
-    // {
-    //     // 1. Liste des modules globaux de l'application
-    //     // Récupère automatiquement la liste depuis config/modules.php
-    //     $availableModules = config('modules.list');
 
-    //     $groupes = Group::all();
-
-    //     $modulePermissions = DB::table('permissions_groupes')
-    //         ->select('group_id', 'module_type', 'type_action')
-    //         ->get();
-
-    //     // 4. Formater les données pour l'onglet 2 : Sous-départements (Pivot)
-    //     //$sousDepartements = SousDepartement::all();
-
-    //     // On charge la relation 'departement' en même temps pour de meilleures performances
-    //     // 4. Formater les données pour l'onglet 2 : Sous-départements (Pivot) et trier par ordre A-Z
-    //     $sousDepartements = SousDepartement::with('departement')
-    //         ->get()
-    //         ->map(function ($sd) {
-    //             // Combinaison des noms (Département - Sous-Département)
-    //             $displayName = $sd->departement
-    //                 ? "{$sd->departement->nom} - {$sd->nom}"
-    //                 : $sd->nom;
-
-    //             return [
-    //                 'id'   => $sd->id,
-    //                 'nom' => $displayName,
-    //             ];
-    //         })
-    //         ->sortBy('nom') // Trie la collection par la clé 'nom' (Ordre A-Z)
-    //         ->values();      // Réinitialise les clés numériques du tableau pour éviter les problèmes de conversion JSON en React
-
-    //     $pivotPermissions = DB::table('group_sous_departement')
-    //         ->select('group_id', 'sous_departement_id', 'niveau_acces')
-    //         ->get();
-
-    //     return Inertia::render('Admin/AllPermissions', [
-    //         'groupes'           => $groupes,
-    //         'modules'           => $availableModules,
-    //         'sousDepartements'  => $sousDepartements,
-    //         'modulePermissions' => $modulePermissions,
-    //         'pivotPermissions'  => $pivotPermissions,
-    //     ]);
-    // }
 
     /**
      * Alterne (Ajoute ou Supprime) une permission polymorphe globale pour un module.

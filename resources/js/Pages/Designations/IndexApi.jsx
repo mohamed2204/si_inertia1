@@ -215,7 +215,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
                     </h1>
 
                     {/* BARRE DE FILTRES CORRIGÉE ET ALIGNÉE */}
-                    <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white p-4 rounded-lg shadow-sm items-center justify-between w-full">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6 surface-card p-4 rounded-lg shadow-sm items-center justify-between w-full">
                         {/* Recherche */}
                         <div className="w-full sm:w-1/4 inline-flex items-center">
                             <IconField className="w-full">
@@ -230,20 +230,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
                                 />
                             </IconField>
                         </div>
-                        {/*
-                        
-                        <div className="w-full sm:w-1/4 inline-flex items-center">
-                            <span className="p-input-icon-left w-full flex items-center">
-                                <i className="pi pi-search" style={{ transform: 'translateY(-50%)', top: '50%' }} />
-                                <InputText
-                                    type="text"
-                                    placeholder="Rechercher une semaine..."
-                                    className="w-full p-inputtext-sm"
-                                    onChange={(e) => debouncedSearch(e.target.value)}
-                                />
-                            </span>
-                        </div>
- /*}
+
                         {/* Select Départements */}
                         <div className="w-full sm:w-1/4">
                             <Dropdown
@@ -301,21 +288,21 @@ export default function Index({ initialDepartments, filters, can_create }) {
                     </div>
 
                     {/* Barre d'outils au-dessus du tableau */}
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            marginBottom: "1rem",
-                        }}
-                    >
-                        <h5 style={{ margin: 0, whiteSpace: "nowrap" }}>
+
+                    {/* Barre d'outils au-dessus du tableau */}
+                    {/* Barre d'outils au-dessus du tableau */}
+                    <div className="w-full flex justify-between items-center flex-wrap gap-3 mb-4 block">
+                        {/* Titre à gauche */}
+                        <h5 className="m-0 whitespace-nowrap text-color font-semibold text-xl inline-block">
                             Liste des Désignations
                         </h5>
 
+                        {/* Zone du bouton poussée à droite */}
                         {can_create && (
-                            <Link href="/designations/create">
+                            <Link
+                                href="/designations/create"
+                                className="ml-auto inline-block"
+                            >
                                 <Button
                                     label="Nouvelle Désignation"
                                     icon="pi pi-plus"
@@ -326,7 +313,7 @@ export default function Index({ initialDepartments, filters, can_create }) {
                     </div>
 
                     {/* TABLEAU */}
-                    <div className="card shadow-2 border-round-xl overflow-hidden bg-white">
+                    <div className="card shadow-2 border-round-xl overflow-hidden surface-card">
                         <DataTable
                             value={tableData.data}
                             loading={loading}
@@ -386,8 +373,8 @@ export default function Index({ initialDepartments, filters, can_create }) {
                             />
                         </DataTable>
 
-                        {/* CONFIGURATION DE LA PAGINATION */}
-                        <div className="p-1 bg-gray-50 border-t flex items-center justify-between">
+                        {/* CONFIGURATION DE LA PAGINATION ADAPTÉE */}
+                        <div className="p-1 surface-ground border-t-1 surface-border flex items-center justify-between">
                             <Paginator
                                 first={
                                     (params.page - 1) * (params.per_page || 10)

@@ -1,59 +1,43 @@
-// import "./bootstrap";
-// import "../css/app.css";
+// =========================================================================
+// 1. IMPORTS DES MODULES & COMPOSANTS
+// =========================================================================
+// import "./bootstrap"; // Décommenté si nécessaire pour Axios / Echo
+// import "../css/app.css"; // Votre CSS global principal (Tailwind, etc.)
 
-// resources/js/app.jsx
-import { router } from '@inertiajs/react'
-import Swal from 'sweetalert2'
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { createInertiaApp, router } from "@inertiajs/react";
+import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
+import Swal from "sweetalert2";
 
-router.on('error', (event) => {
-    const errors = event.detail.errors;
-    const message = Object.values(errors)[0];
+// PrimeReact & Locales
+import { PrimeReactProvider, addLocale, locale } from "primereact/api";
 
-    Swal.fire({
-        icon: 'error',
-        title: 'Oups !',
-        text: message,
-        toast: true,
-        position: 'top-end',
-        timer: 4000,
-        showConfirmButton: false,
-    });
-});
+// =========================================================================
+// 2. IMPORTS DES STYLES (Ordre de spécificité croissant)
+// =========================================================================
+// A. Thème sélectionné (Soho Dark)
+import "primereact/resources/themes/soho-dark/theme.css";
+// Autres options disponibles en commentaire si besoin :
+// import "primereact/resources/themes/lara-light-indigo/theme.css";
+// import "primereact/resources/themes/saga-blue/theme.css";
 
-import { PrimeReactProvider } from "primereact/api";
-
-// 1. Thème de base PrimeReact (Lara, Saga, etc.)
-import "primereact/resources/themes/lara-light-indigo/theme.css";
-//import "primereact/resources/themes/saga-blue/theme.css";
-//import "primereact/resources/themes/soho-dark/theme.css";
-//import "primereact/resources/themes/mdc-light-deeppurple/theme.css";
-//import "primereact/resources/themes/mdc-dark-deeppurple/theme.css";
-
-// 2. Coeur de PrimeReact et Icônes
+// B. Bibliothèque de composants & Icônes
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 
-// 3. PrimeFlex (Utilitaires de layout)
+// C. Frameworks utilitaires
 import "primeflex/primeflex.css";
 
-// 4. Styles spécifiques à Sakai (que vous avez copiés)
+// D. Thème personnalisé Sakai (Écrase les styles précédents si nécessaire)
 import "../css/sakai/layout/layout.scss";
-import "../css/sakai/demo/Demos.scss"; // Optionnel, pour les exemples de composants
+import "../css/sakai/demo/Demos.scss";
 
-import { createRoot } from "react-dom/client";
-import { createInertiaApp } from "@inertiajs/react";
-import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
+// =========================================================================
+// 3. CONFIGURATIONS GLOBALES (Locales & Écouteurs)
+// =========================================================================
 
-// createInertiaApp({
-//     resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
-//     setup({ el, App, props }) {
-//         createRoot(el).render(<App {...props} />);
-//     },
-// });
-
-import { addLocale, locale } from "primereact/api";
-
-// Définition de la configuration française
+// Configuration et activation de la langue française pour PrimeReact
 addLocale("fr", {
     firstDayOfWeek: 1,
     dayNames: [
@@ -84,12 +68,12 @@ addLocale("fr", {
     monthNamesShort: [
         "jan",
         "fév",
-        "mar",
+        "mars",
         "avr",
         "mai",
-        "jun",
-        "jul",
-        "aoû",
+        "juin",
+        "juil",
+        "août",
         "sep",
         "oct",
         "nov",
@@ -98,10 +82,27 @@ addLocale("fr", {
     today: "Aujourd'hui",
     clear: "Effacer",
 });
-
-// Activation de la langue par défaut
 locale("fr");
 
+// Gestion centralisée des erreurs de validation ou d'exceptions via Inertia
+router.on("error", (event) => {
+    const errors = event.detail.errors;
+    const message = Object.values(errors)[0];
+
+    Swal.fire({
+        icon: "error",
+        title: "Oups !",
+        text: message,
+        toast: true,
+        position: "top-end",
+        timer: 4000,
+        showConfirmButton: false,
+    });
+});
+
+// =========================================================================
+// 4. INITIALISATION DE L'APPLICATION INERTIA
+// =========================================================================
 createInertiaApp({
     title: (title) => `${title} - My App`,
     resolve: (name) =>
