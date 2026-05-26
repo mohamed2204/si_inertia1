@@ -417,8 +417,29 @@ const CreateDesignation = ({ departements = [] }) => {
 
                                                         {/* Dropdown à droite */}
                                                         <div className="py-0 col-9">
-                                                            <Dropdown
+                                                            <AutoComplete
+                                                                // 1. Sécurisation du .find() avec le chaînage optionnel (?.) ou une valeur de secours []
                                                                 value={
+                                                                    (Array.isArray(
+                                                                        membres,
+                                                                    )
+                                                                        ? membres
+                                                                        : []
+                                                                    ).find(
+                                                                        (m) =>
+                                                                            m.id ===
+                                                                            data
+                                                                                .all_designations[
+                                                                                currentLabConfig
+                                                                                    .id
+                                                                            ]?.[
+                                                                                conf
+                                                                                    .jour
+                                                                            ]?.[
+                                                                                req
+                                                                                    .id
+                                                                            ],
+                                                                    ) ||
                                                                     data
                                                                         .all_designations[
                                                                         currentLabConfig
@@ -428,27 +449,45 @@ const CreateDesignation = ({ departements = [] }) => {
                                                                             .jour
                                                                     ]?.[
                                                                         req.id
-                                                                    ] || null
+                                                                    ] ||
+                                                                    ""
                                                                 }
-                                                                options={
-                                                                    membres
+                                                                // 2. Sécurisation des suggestions envoyées à PrimeReact
+                                                                suggestions={
+                                                                    Array.isArray(
+                                                                        membres,
+                                                                    )
+                                                                        ? membres
+                                                                        : []
                                                                 }
-                                                                optionLabel="nom"
-                                                                optionValue="id"
-                                                                placeholder="..."
-                                                                className="w-full text-xs p-inputtext-sm border-round-md"
+                                                                completeMethod={
+                                                                    searchMembres
+                                                                }
+                                                                field="nom"
+                                                                dropdown
+                                                                placeholder="Tapez un nom..."
+                                                                className="w-full text-xs"
+                                                                inputClassName="w-full p-inputtext-sm border-round-md"
                                                                 style={{
                                                                     height: "34px",
                                                                 }}
-                                                                filter
-                                                                onChange={(e) =>
+                                                                onChange={(
+                                                                    e,
+                                                                ) => {
+                                                                    const selectedId =
+                                                                        e.value
+                                                                            ?.id
+                                                                            ? e
+                                                                                  .value
+                                                                                  .id
+                                                                            : e.value;
                                                                     handleMemberChange(
                                                                         currentLabConfig.id,
                                                                         conf.jour,
                                                                         req.id,
-                                                                        e.value,
-                                                                    )
-                                                                }
+                                                                        selectedId,
+                                                                    );
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
