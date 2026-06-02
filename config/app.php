@@ -52,7 +52,16 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    //'url' => env('APP_URL', 'http://localhost'),
+    // Avant : 'url' => env('APP_URL', 'http://localhost'),
+
+    // Après : Détection dynamique basée sur le serveur ou le Reverse Proxy
+    'url' => env(
+        'APP_URL',
+        isset($_SERVER['HTTP_X_FORWARDED_HOST'])
+        ? ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ? 'https' : 'http') . '://' . $_SERVER['HTTP_X_FORWARDED_HOST'])
+        : (isset($_SERVER['HTTP_HOST']) ? (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] : 'http://localhost')
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -78,12 +87,12 @@ return [
     |
     */
 
-//    'locale' => env('APP_LOCALE', 'fr'),
+    //    'locale' => env('APP_LOCALE', 'fr'),
     'locale' => 'fr',
     'fallback_locale' => 'fr',
 
 
-//    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'fr'),
+    //    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'fr'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 

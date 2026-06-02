@@ -45,10 +45,10 @@ export default defineConfig({
         port: 5173,
         strictPort: true,
         cors: true,      // Autorise explicitement les requêtes cross-origin de Nginx
-        origin: 'https://si-app.domain.lan', // Dit à Vite que son origine publique est Nginx en HTTPS
+        origin: 'https://app1.work.local', // Dit à Vite que son origine publique est Nginx en HTTPS
         hmr: {
             protocol: 'wss',
-            host: 'si-app.domain.lan',
+            host: 'app1.work.local',
             clientPort: 443,
         },
     },

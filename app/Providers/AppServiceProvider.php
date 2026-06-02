@@ -1,24 +1,25 @@
 <?php
-
 namespace App\Providers;
 
-use App\Models\User;
 use App\Models\Role;
-use App\Policies\UserPolicy;
+use App\Models\User;
 use App\Policies\RolePolicy;
+use App\Policies\UserPolicy;
 // Importez les autres modèles et policies si nécessaire
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+// <-- Ajoute cet import
 
 class AppServiceProvider extends ServiceProvider
 {
     protected array $policies = [
         User::class => UserPolicy::class,
-       // Permission::class => PermissionPolicy::class,
+        // Permission::class => PermissionPolicy::class,
         Role::class => RolePolicy::class,
     ];
-
 
     /**
      * Register any application services.
@@ -38,6 +39,16 @@ class AppServiceProvider extends ServiceProvider
         // 1. Enregistrement manuel des Policies (Crucial si vous n'utilisez pas AuthServiceProvider)
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
+        }
+
+        // Force le schéma global
+        URL::forceScheme('https');
+
+        // Force explicitement Vite à utiliser des URLs de build sécurisées
+        if (config('app.env') !== 'local' || isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            Vite::useScriptTagAttributes([
+                'crossorigin' => 'anonymous',
+            ]);
         }
 
         // 2. LE "COUPE-FILE" POUR L'ADMIN (Stoppe les redirections infinies)
