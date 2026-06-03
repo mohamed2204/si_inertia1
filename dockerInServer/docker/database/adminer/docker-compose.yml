@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # --- LE GESTIONNAIRE DE BASE DE DONNÉES (Accessible via le Web) ---
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin-global
+    restart: unless-stopped
+    environment:
+      # On lui indique le nom du conteneur de notre base MariaDB
+      PMA_HOST: mariadb-global
+      PMA_PORT: 3306
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.work.local`)"
+      - "traefik.http.routers.phpmyadmin.entrypoints=websecure"
+      - "traefik.http.routers.phpmyadmin.tls=true"
+      - "traefik.http.services.phpmyadmin-service.loadbalancer.server.port=80"
+
+      # --- SÉCURITÉ : RESTRICTION IP (Même middleware que pour Adminer) ---
+      - "traefik.http.middlewares.db-ip-whitelist.ipallowlist.sourcerange=192.168.1.2" # Mets ton IP de PC ici
+      - "traefik.http.routers.phpmyadmin.middlewares=db-ip-whitelist"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Un fichier de log fait 10 Mo max
+        max-file: "3"     # On garde 3 fichiers de rotation max (30 Mo au total)
+  adminer:
+    image: adminer:latest
+    container_name: adminer-global
+    restart: unless-stopped
+    networks:
+      - proxy # Pour que Traefik le trouve et pour parler à MariaDB
+    labels:
+      - "traefik.enable=true"
+      # URL pour accéder à ton Adminer global
+      - "traefik.http.routers.adminer.rule=Host(`adminer.work.local`)"
+      - "traefik.http.routers.adminer.entrypoints=websecure"
+      - "traefik.http.routers.adminer.tls=true"
+      # Port interne classique d'Adminer
+      - "traefik.http.services.adminer-service.loadbalancer.server.port=8080"
+
+      # --- SÉCURITÉ : RESTRICTION IP ---
+      # Remplace 192.168.1.XX par l'IP locale fixe de ton PC de travail
+      - "traefik.http.middlewares.adminer-ip-whitelist.ipallowlist.sourcerange=192.168.1.2"
+      # On applique le middleware au routeur d'Adminer
+      - "traefik.http.routers.adminer.middlewares=adminer-ip-whitelist"
+
+  # --- LA BASE DE DONNÉES GLOBALE (Isolée) ---
+  mariadb-global:
+    image: mariadb:10.11
+    container_name: mariadb-global
+    restart: unless-stopped
+    # NOTE : Pas de section "ports" (3306:3306) pour empêcher le LAN d'y accéder directement.
+    # Seuls les conteneurs sur le réseau 'proxy' peuvent la voir.
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: global_db
+      MYSQL_USER: mohamed
+      MYSQL_PASSWORD: mohamed
+    volumes:
+      # Stockage persistant sur ton serveur
+      - /DATA/AppData/mysql-global:/var/lib/mysql
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true # Rejoint le réseau existant créé par Traefik

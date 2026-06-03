@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # --- LE SERVEUR WEB (L'entrée de votre application) ---
+  web-server-si:
+    image: nginx:alpine
+    container_name: nginx-app1-si
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - proxy              # Connecté au Traefik global
+      - internal-app1-si   # Pour communiquer avec PHP
+    depends_on:
+      - php_app1_si
+    labels:
+      - "traefik.enable=true"
+      # Configuration du routage avec ton nouveau domaine .local
+      - "traefik.http.routers.app1-si.rule=Host(`app1.work.local`)"
+      - "traefik.http.routers.app1-si.entrypoints=websecure"
+      - "traefik.http.routers.app1-si.tls=true"
+      # Traefik envoie le trafic sur le port 80 de ce conteneur Nginx
+      - "traefik.http.services.app1-si-service.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Un fichier de log fait 10 Mo max
+        max-file: "3"     # On garde 3 fichiers de rotation max (30 Mo au total)
+        
+  # --- LE MOTEUR PHP (Votre TALL Stack) ---
+  php_app1_si:
+    build:
+      context: ./php
+      args:
+        - USER_ID=1000
+    container_name: php-app1-si
+    user: "1000:33"
+    environment:
+      - APP_ENV=production
+      # Docker va injecter cette valeur directement dans l'environnement du conteneur
+      - APP_URL=https://app1.work.local
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - proxy              # Permet à PHP d'accéder au réseau si besoin (ex: requêtes HTTP externes)
+      - internal-app1-si
+
+networks:
+  proxy:
+    external: true         # Réseau externe de Traefik global (anciennement proxy-nw)
+  internal-app1-si:
+    driver: bridge         # Réseau privé isolé propre à cette application
