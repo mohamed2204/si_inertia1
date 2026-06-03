@@ -1,0 +1,93 @@
+services:
+  traefik:
+    image: traefik:v3.7
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+      # Connect to the 'traefik_proxy' overlay network for inter-container communication across nodes
+      - proxy
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/certs:ro
+      - ./dynamic:/dynamic:ro
+      # --- NOUVEAU VOLUME POUR LES LOGS ---
+      # On crée un dossier 'logs' en local qui se synchronise avec /var/log/traefik dans le conteneur
+      - ./logs:/var/log/traefik
+    command:
+      # EntryPoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+
+      # Attach the static configuration tls.yaml file that contains the tls configuration settings
+      - "--providers.file.directory=/dynamic"
+      - "--providers.file.watch=true"
+
+      # Providers 
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+
+      # API & Dashboard 
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+
+      # Observability 
+      # --- CONFIGURATION DES ACCESS LOGS CORRIGÉE ---
+      # 1. Activation des logs d'accès
+      - "--accesslog=true"
+      # 2. Format JSON (Idéal si tu veux les analyser plus tard avec Vector, Loki ou ELK)
+      - "--accesslog.format=json"
+      # 3. Chemin INTERNE au conteneur (lié à notre volume ./logs)
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      # 4. Filtrage : On ne garde que les erreurs (400 à 599) pour éviter de saturer le disque avec les codes 200/302
+      - "--accesslog.filters.statuscodes=400-599"
+
+    # Traefik Dynamic configuration via Docker labels
+    labels:
+      # Enable self‑routing
+      - "traefik.enable=true"
+
+      # Dashboard router
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.work.local`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+
+      # Basic‑auth middleware
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$1/hdADu.$$kpUmtb2LnIJReBkTA13191"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Un fichier de log fait 10 Mo max
+        max-file: "3"     # On garde 3 fichiers de rotation max (30 Mo au total)
+        
+  # Whoami application
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.work.local`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls=true"
+
+networks:
+  proxy:
+    name: proxy
