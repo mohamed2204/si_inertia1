@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Providers;
 
 use App\Models\Role;
@@ -42,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Force le schéma global
-        URL::forceScheme('https');
+        // URL::forceScheme('https');
 
         // Force explicitement Vite à utiliser des URLs de build sécurisées
         if (config('app.env') !== 'local' || isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
@@ -51,24 +52,27 @@ class AppServiceProvider extends ServiceProvider
             ]);
         }
 
-        // 2. LE "COUPE-FILE" POUR L'ADMIN (Stoppe les redirections infinies)
-//        Gate::before(function ($user, $ability) {
-//            dd($user);
-//            //dd($user->roles);
-//            // Si l'utilisateur a le rôle admin ou super_admin, on autorise TOUT
-//            // Retourner true permet de court-circuiter toutes les Policies
-//
-//            //return true;
-//
-//            if ($user->hasRole(['admin'])) {
-//                //dd("admin");
-//                return true;
-//            }
-//
-//            // Pour les autres utilisateurs, on retourne null pour
-//            // que Laravel continue vers les Policies classiques
-//            return null;
-//        });
-    }
 
+        if (!App::environment('local') || isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            URL::forceScheme('https');
+        }
+        // 2. LE "COUPE-FILE" POUR L'ADMIN (Stoppe les redirections infinies)
+        //        Gate::before(function ($user, $ability) {
+        //            dd($user);
+        //            //dd($user->roles);
+        //            // Si l'utilisateur a le rôle admin ou super_admin, on autorise TOUT
+        //            // Retourner true permet de court-circuiter toutes les Policies
+        //
+        //            //return true;
+        //
+        //            if ($user->hasRole(['admin'])) {
+        //                //dd("admin");
+        //                return true;
+        //            }
+        //
+        //            // Pour les autres utilisateurs, on retourne null pour
+        //            // que Laravel continue vers les Policies classiques
+        //            return null;
+        //        });
+    }
 }
