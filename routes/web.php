@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SousDepartementUserController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationPageController;
+use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\LabRequisController;
 use App\Models\Membre;
 use Illuminate\Support\Facades\Route;
@@ -50,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
     //     ]);
     // })->name('designations.index.page'); // pas controller php, c'est une page Inertia qui va faire les appels API ensuite
 
-// 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
+    // 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
     Route::get('/designations-list', [DesignationPageController::class, 'index'])->name('designations.api.index');
     //Route::get('/api/designations', [DesignationPageController::class, 'listApi'])->name('designations.list'); // C'est cette route qui est appelée par le service JS pour récupérer les données filtrées
     Route::get('/designations/create', [DesignationPageController::class, 'create'])->name('designations.create');
@@ -93,6 +94,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('pages/crud', function () {
         return Inertia::render('Crud/Crud');
     });
+
+
+
+    Route::get('/telecharger-excel', [ExcelController::class, 'genererRapport'])
+        ->name('excel.telecharger');
+
 
     // 2. Les routes d'administration sécurisées (Uniquement pour la Direction)
     Route::middleware(['admin.group'])->group(function () {
