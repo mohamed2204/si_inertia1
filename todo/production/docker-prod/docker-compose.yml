@@ -1,0 +1,71 @@
+services:
+  # Laravel App (PHP-FPM)
+  app:
+    build:
+      context: .
+      dockerfile: inline.Dockerfile
+    image: laravel-php-fpm
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    networks:
+      - laravel-net
+
+  # Serveur Web Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443" # <-- AJOUT INDISPENSABLE POUR LE HTTPS
+    volumes:
+      - ./src:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro # <-- AJOUT POUR VOS CERTIFICATS
+    networks:
+      - laravel-net
+    depends_on:
+      - app
+
+  # Base de données MariaDB
+  mariadb:
+    image: mariadb:10.11
+    container_name: laravel_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: si_db
+      MYSQL_USER: si_user
+      MYSQL_PASSWORD: si_user
+      MYSQL_ROOT_PASSWORD: mohamed
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - laravel-net
+      
+  # --- AJOUT DE PHPMYADMIN ---
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: laravel_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80" # On l'expose sur le port 8080 de l'hôte
+    environment:
+      - PMA_HOST=mariadb # Nom du service de la bdd dans ce fichier
+      - UPLOAD_LIMIT=64M  # Augmente la limite d'import de fichiers SQL
+    networks:
+      - laravel-net
+    depends_on:
+      - mariadb
+
+networks:
+  laravel-net:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    driver: local
