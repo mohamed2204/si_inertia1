@@ -1023,12 +1023,27 @@ class DesignationPageController extends Controller
      */
     public function telechargerRapport($id)
     {
+
+
         // 1. Récupération de la désignation avec toutes ses données réelles
         $designation = Designation::with([
             'sousDepartement.departement',
             'items.membre',
             'items.laboratoire'
         ])->findOrFail($id);
+
+
+        // Récupération du code unique (ex: 'LAB')
+        $subDeptCode = $designation->sousDepartement->code;
+
+        // Chargement de la vue basée sur le code, ou la vue par défaut si le code n'est pas mappé
+        //$viewName = config("designations.pdf_views.{$subDeptCode}", config('designations.pdf_views.default'));
+  $viewName = "pdf.canevas_designation_{$subDeptCode}";
+
+        // Sécurité de secours physique
+        if (!view()->exists($viewName)) {
+            $viewName = 'pdf.designation';
+        }
 
         // 2. Préparation des variables textuelles réelles
         $info1 = $designation->semaine_nom; // Ex: "Semaine 27 - 2026"
@@ -1051,7 +1066,7 @@ class DesignationPageController extends Controller
         });
 
         // 4. Chargement de la vue 'resources/views/pdf/designation.blade.php' avec les vraies données
-        $pdf = Pdf::loadView('pdf.designation', compact('designation', 'info1', 'info2', 'items'));
+        $pdf = Pdf::loadView( $viewName, compact('designation', 'info1', 'info2', 'items'));
 
         // 5. Configuration du format de la page
         $pdf->setPaper('a4', 'portrait');
@@ -1060,5 +1075,40 @@ class DesignationPageController extends Controller
         $nomFichier = 'rapport-planification-' . $designation->id . '-' . Carbon::parse($designation->date_debut)->format('Y-m-d') . '.pdf';
 
         return $pdf->stream($nomFichier);
+
+
+        /*
+            Carbon::setLocale('fr');
+
+$formattedItems = [];
+
+foreach ($designation->items as $item) {
+    $dateCarbon = Carbon::parse($item->date_effective);
+    $jourNom = ucfirst($dateCarbon->translatedFormat('l'));
+    $dateFormatee = $dateCarbon->translatedFormat('d/m/Y');
+    
+    $labName = $item->laboratoire->nom ?? 'Laboratoire';
+
+    // Clé unique pour grouper par Labo et par jour
+    $groupKey = $labName . '_' . $item->date_effective;
+
+    if (!isset($formattedItems[$groupKey])) {
+        $formattedItems[$groupKey] = [
+            'labo' => $labName,
+            'jour' => $jourNom,
+            'date' => $dateFormatee,
+            'membres' => [] // 🔥 Tableau pour accueillir PLUSIEURS membres
+        ];
+    }
+
+    // On ajoute le membre dans la liste de ce jour-là
+    $formattedItems[$groupKey]['membres'][] = $item->membre->nom ?? 'Non assigné';
+}
+
+// On trie pour garder l'ordre chronologique dans le PDF
+$items = collect($formattedItems)->sortBy('date');
+
+$pdf = Pdf::loadView($viewName, compact('designation', 'info1', 'info2', 'items'));
+        */
     }
 }

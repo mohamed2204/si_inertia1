@@ -127,38 +127,6 @@
         </tbody>
     </table>
 
-    <!-- <table class="data-table">
-    <thead>
-        <tr>
-            <th class="col-date">Jour / Date</th>
-            <th class="col-labo">Laboratoire</th>
-            <th class="col-membre">Membres Désignés</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($items as $item)
-        <tr>
-            <td class="col-date">
-                <strong>{{ $item['jour'] }}</strong><br>
-                <strong>{{ $item['date'] }}</strong>
-            </td>
-            
-            <td class="col-labo">
-                <strong>{{ $item['labo'] }}</strong>
-            </td>
-            
-            <td class="col-membre">
-                @foreach($item['membres'] as $membre)
-                    <div style="padding: 2px 0; border-bottom: 1px dashed #eee;">
-                        • {{ $membre }}
-                    </div>
-                @endforeach
-            </td>
-        </tr>
-        @endforeach
-    </tbody>
-</table> -->
-
 </body>
 
 </html>

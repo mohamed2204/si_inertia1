@@ -15,7 +15,7 @@ class SousDepartement extends Model
     // Laravel la trouvera. Sinon, spécifiez-la :
     protected $table = 'sous_departements';
 
-    protected $fillable = ['nom', 'departement_id'];
+    protected $fillable = ['nom', 'code', 'departement_id'];
     public $timestamps  = true;
 
     public function departement(): BelongsTo
