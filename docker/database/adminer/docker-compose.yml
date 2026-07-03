@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # --- PHPBOARD / PHPMYADMIN ---
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin-global
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb-global
+      PMA_PORT: 3306
+    networks:
+      - npm-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --- ADMINER ---
+  adminer:
+    image: adminer:latest
+    container_name: adminer-global
+    restart: unless-stopped
+    networks:
+      - npm-network
+
+  # --- LA BASE DE DONNÉES GLOBALE ---
+  mariadb-global:
+    image: mariadb:10.11
+    container_name: mariadb-global
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: global_db
+      MYSQL_USER: mohamed
+      MYSQL_PASSWORD: mohamed
+    volumes:
+      - /DATA/AppData/mysql-global:/var/lib/mysql
+    ports:
+      - "3306:3306" # <-- AJOUTER CETTE LIGNE (Port_Hôte:Port_Conteneur)
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true # Doit correspondre au réseau sur lequel tourne votre NPM

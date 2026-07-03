@@ -1,0 +1,39 @@
+services:
+  # 1. Nginx Proxy Manager (Le Proxy Inverse)
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81'
+    volumes:
+      - ./npm/data:/data
+      - ./npm/letsencrypt:/etc/letsencrypt
+    networks:
+      - npm-network
+
+  # 2. AdGuard Home (Serveur DNS & Bloqueur de pub)
+  adguard:
+    image: adguard/adguardhome
+    container_name: adguardhome
+    restart: unless-stopped
+    # On lie les ports DNS au réseau de la machine, mais l'interface web (3000/80) passera par NPM
+    ports:
+      - '3000:3000/tcp'
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '784:784/udp'
+      - '853:853/tcp'
+      - '853:853/udp'
+    volumes:
+      - ./adguard/work:/opt/adguardhome/work
+      - ./adguard/conf:/opt/adguardhome/conf
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    name: npm-network
+    driver: bridge

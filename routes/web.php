@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DesignationPageController;
 use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\LabRequisController;
+use App\Http\Controllers\RapportController;
 use App\Models\Membre;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -52,13 +53,19 @@ Route::middleware(['auth'])->group(function () {
     // })->name('designations.index.page'); // pas controller php, c'est une page Inertia qui va faire les appels API ensuite
 
     // 2. La route API que votre service api.js va interroger (appelée à chaque filtre/pagination)
-    Route::get('/designations-list', [DesignationPageController::class, 'index'])->name('designations.api.index');
+    Route::get('/designations-list', [DesignationPageController::class, 'index'])
+        ->name('designations.index');
     //Route::get('/api/designations', [DesignationPageController::class, 'listApi'])->name('designations.list'); // C'est cette route qui est appelée par le service JS pour récupérer les données filtrées
-    Route::get('/designations/create', [DesignationPageController::class, 'create'])->name('designations.create');
-    Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])->name('designations.show');
-    Route::get('/designations/{designation}/edit', [DesignationPageController::class, 'edit'])->name('designations.edit');
-    Route::post('/api/designations', [DesignationPageController::class, 'store'])->name('designations.api.store');
-    Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])->name('designations.api.destroy');
+    Route::get('/designations/create', [DesignationPageController::class, 'create'])
+        ->name('designations.create');
+    Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])
+        ->name('designations.show');
+    Route::get('/designations/{designation}/edit', [DesignationPageController::class, 'edit'])
+        ->name('designations.edit');
+    Route::post('/api/designations', [DesignationPageController::class, 'store'])
+        ->name('designations.api.store');
+    Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])
+        ->name('designations.api.destroy');
 
     // Récupérer les labos d'un sous-département
     Route::get('/api/sous-departements/{sous_departement}/labs', [DesignationPageController::class, 'getLabsBySousDept']);
@@ -100,6 +107,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/telecharger-excel', [ExcelController::class, 'genererRapport'])
         ->name('excel.telecharger');
 
+    Route::get('/rapport/download', [RapportController::class, 'telechargerRapport'])->name('rapport.download');
 
     // 2. Les routes d'administration sécurisées (Uniquement pour la Direction)
     Route::middleware(['admin.group'])->group(function () {

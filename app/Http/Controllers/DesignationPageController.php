@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
@@ -26,7 +27,7 @@ class DesignationPageController extends Controller
             abort(403, "Vous n'avez pas accès au module des désignations.");
         }
 
-                                                     // 2. Récupération des flags globaux de l'onglet 1 (accès au bouton/action maître)
+        // 2. Récupération des flags globaux de l'onglet 1 (accès au bouton/action maître)
         $hasAbsoluteView = $user->hasAbsoluteView(); // SuperAdmin ou assimilé
         $hasGlobalWrite  = $user->hasGlobalPermission('designations', 'modification');
         $hasGlobalDelete = $user->hasGlobalPermission('designations', 'suppression');
@@ -96,28 +97,28 @@ class DesignationPageController extends Controller
         $canCreateGlobally = $hasGlobalWrite && (
             $hasAbsoluteView ||
             DB::table('sous_departement_user')
-                ->where('user_id', $user->id)
-                ->where('can_create', true)
-                ->exists()
+            ->where('user_id', $user->id)
+            ->where('can_create', true)
+            ->exists()
         );
 
 
         // =========================================================================
-    // FILTRAGE DES DÉPARTEMENTS APPARENTS (Pour les filtres de l'interface)
-    // =========================================================================
-    if ($hasAbsoluteView) {
-        // Un administrateur avec vue absolue voit tous les départements
-        $departmentsForUser = Departement::orderBy('nom')->get();
-    } else {
-        // Un utilisateur standard ne voit que les départements des sous-départements autorisés
-        $authorizedSousDepartementIds = array_keys($userPermissionsMap);
+        // FILTRAGE DES DÉPARTEMENTS APPARENTS (Pour les filtres de l'interface)
+        // =========================================================================
+        if ($hasAbsoluteView) {
+            // Un administrateur avec vue absolue voit tous les départements
+            $departmentsForUser = Departement::orderBy('nom')->get();
+        } else {
+            // Un utilisateur standard ne voit que les départements des sous-départements autorisés
+            $authorizedSousDepartementIds = array_keys($userPermissionsMap);
 
-        $departmentsForUser = Departement::whereHas('sousDepartements', function ($query) use ($authorizedSousDepartementIds) {
-            $query->whereIn('id', $authorizedSousDepartementIds);
-        })
-        ->orderBy('nom')
-        ->get();
-    }
+            $departmentsForUser = Departement::whereHas('sousDepartements', function ($query) use ($authorizedSousDepartementIds) {
+                $query->whereIn('id', $authorizedSousDepartementIds);
+            })
+                ->orderBy('nom')
+                ->get();
+        }
 
         if ($request->wantsJson()) {
             return response()->json($paginatedResults);
@@ -130,7 +131,7 @@ class DesignationPageController extends Controller
             'can_create'         => $canCreateGlobally,
         ]);
     }
-  
+
     // {
     //     $user = $request->user();
 
@@ -533,8 +534,8 @@ class DesignationPageController extends Controller
         // Formater les sous-items pour l'état initial all_designations du Front React
         $formattedItems = [];
         foreach ($designation->items as $item) {
-                                                  // Debug : vérifier les données de chaque item
-                                                  // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
+            // Debug : vérifier les données de chaque item
+            // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
             $jour = $item->laboratoire_config_id; // Ajustez selon votre colonne réelle stockant le jour
 
             $formattedItems[$item->laboratoire_id][$jour][$item->laboratoire_config_id] = $item->membre_id;
@@ -552,146 +553,157 @@ class DesignationPageController extends Controller
     }
     public function store(Request $request)
     {
+        // 1. Récupérer la chaîne ISO brute (ex: "2026-07-02T23:00:00.000Z")
+        $valeurOrigine = $request->input('date_debut');
+        $dateDebutFormatee = null;
+
         // On injecte 'en_attente' par défaut si le front ne l'envoie pas
         if (! $request->has('statut')) {
             $request->merge(['statut' => 'en_attente']);
         }
 
-        // Au moment de créer votre Désignation principale :
-        // 3. Forcer le statut initial à 'en_attente'
         $statutInitial = 'en_attente';
 
-        // 1. Initialiser la date de départ (Vendredi)
+        // 2. CORRECTION DU FUSEAU HORAIRE AVANT LA VALIDATION
+        if (!is_null($valeurOrigine) && $valeurOrigine !== '' && $valeurOrigine !== 'null') {
+            try {
+                $timezone = $request->input('browser_timezone', config('app.timezone', 'UTC'));
 
-        // 1. On récupère la timezone du navigateur (par défaut UTC si absente)
-        $timezone = $request->input('browser_timezone', config('app.timezone', 'UTC'));
+                // On parse en UTC puis on bascule sur la timezone de l'utilisateur
+                $baseDate = Carbon::parse($valeurOrigine, 'UTC')->setTimezone($timezone);
 
-        try {
-            // 2. On parse DIRECTEMENT la chaîne reçue du formulaire.
-            // On indique à Carbon que la chaîne reçue est en UTC, puis on la convertit
-            // immédiatement vers la timezone de l'utilisateur.
-            $baseDate = Carbon::parse($request->input('date_debut'), 'UTC')->setTimezone($timezone);
+                // Le correcteur automatique d'heures (si l'heure reçue est 22h ou 23h UTC)
+                if ($baseDate->hour == 23 || $baseDate->hour == 22) {
+                    $baseDate->addHours(3);
+                }
 
-        } catch (\Exception $e) {
-            return back()->withErrors(['date_debut' => 'Le format de la date est invalide.']);
+                // On obtient enfin la vraie date locale désirée (Y-m-d -> "2026-07-03")
+                $dateDebutFormatee = $baseDate->format('Y-m-d');
+
+                // 🔥 ON MET À JOUR LA REQUÊTE POUR QUE LA VALIDATION TESTE LA BONNE DATE (03/07)
+                $request->merge(['date_debut' => $dateDebutFormatee]);
+            } catch (\Exception $e) {
+                return back()->withErrors(['date_debut' => 'Le format de la date est invalide.']);
+            }
         }
 
-        // 2. LE CORRECTEUR AUTOMATIQUE :
-        // Si l'heure est fixée à 23h00, c'est le décalage UTC classique.
-        // En ajoutant 2 heures, on force la date à passer à 01h00 du MATIN LE LENDEMAIN (le bon jour !).
-        // Si la date était déjà à 00:00:00, ajouter 2 heures reste sur la même journée.
-        if ($baseDate->hour == 23 || $baseDate->hour == 22) {
-            $baseDate->addHours(3);
-        }
+        // 3. PRÉPARER LES RÈGLES DE VALIDATION (Sur la date désormais corrigée à "2026-07-03")
+    $dateRules = ['required', 'date'];
 
-        // 3. On extrait les chaînes propres au format standard MySQL (Y-m-d)
-        $dateDebutFormatee = $baseDate->format('Y-m-d');
+    if (!is_null($dateDebutFormatee)) {
+        $dateRules[] = Rule::unique('designations', 'date_debut')->where(function ($query) use ($request) {
+            return $query->where('sous_departement_id', $request->input('sous_departement_id'));
+        });
+    }
 
-        // Si vous faites un dd() ici, vous verrez enfin la date exacte sélectionnée sur l'écran (le 15 mai) !
-        //dd($dateDebutFormatee);
+    // 4. LANCER LA VALIDATION (Elle recevra "2026-07-03", le 'required' fonctionnera si c'était vide)
+    $validated = $request->validate([
+        'date_debut'          => $dateRules,
+        'semaine_nom'         => 'required|string|max:255',
+        'sous_departement_id' => 'required|exists:sous_departements,id',
+        'notes_generales'     => 'nullable|string',
+        'all_designations'    => 'required|array|min:1',
+    ], [
+        'date_debut.required'       => 'La date de début est obligatoire.',
+        'date_debut.date'           => 'Le format de la date est invalide.',
+        'date_debut.unique'         => 'Une planification existe déjà pour ce sous-département à cette date.',
+        'all_designations.required' => 'Le tableau des désignations est obligatoire.',
+        'all_designations.min'      => 'Vous devez affecter au moins une désignation.',
+    ]);
 
-        // 2. Calculer automatiquement la date de fin (+ 6 jours pour faire une semaine complète)
-        // On utilise ->copy() pour ne pas altérer la variable $baseDate originale
-        $dateFinFormatee = $baseDate->copy()->addDays(6)->format('Y-m-d');
+    // 5. DATE DE FIN CALCULÉE SUR LA BASE DE LA DATE CORRIGÉE
+    $dateFinFormatee = $baseDate->copy()->addDays(6)->format('Y-m-d');
 
-        // 2. On injecte la date nettoyée dans la requête AVANT la validation
-        // pour que Laravel valide "2026-05-15" et non la chaîne ISO originale.
-        $request->merge(['date_debut' => $dateDebutFormatee]);
-
-        // 3. Validation stricte des doublons
+        // 3. LANCER LA VALIDATION AVANT TOUT CALCUL OU INTERACTION BDD
         $validated = $request->validate([
+            'date_debut'          => $dateRules,
             'semaine_nom'         => 'required|string|max:255',
             'sous_departement_id' => 'required|exists:sous_departements,id',
             'notes_generales'     => 'nullable|string',
-
-            // LA RÈGLE COMPOSITE UNIQUE :
-            'date_debut'          => [
-                'required',
-                'date',
-                Rule::unique('designations', 'date_debut')->where(function ($query) use ($request) {
-                    return $query->where('sous_departement_id', $request->input('sous_departement_id'));
-                }),
-            ],
+            'all_designations'    => 'required|array|min:1',
         ], [
-            // Message d'erreur personnalisé en français pour le SweetAlert2 du Front !
-            'date_debut.unique' => 'Une planification existe déjà pour ce sous-département à cette date.',
+            'date_debut.required'       => 'La date de début est obligatoire.',
+            'date_debut.date'           => 'Le format de la date est invalide.',
+            'date_debut.unique'         => 'Une planification existe déjà pour ce sous-département à cette date.',
+            'all_designations.required' => 'Le tableau des désignations est obligatoire.',
+            'all_designations.min'      => 'Vous devez affecter au moins une désignation.',
         ]);
 
-        // 2. Créer la désignation principale
+       
+        // 5. VÉRIFICATION SI AU MOINS UN MEMBRE A ÉTÉ CHOISI DANS LA GRILLE
+        $hasAtLeastOneMember = false;
+        if (is_array($request->input('all_designations'))) {
+            foreach ($request->input('all_designations') as $labId => $jours) {
+                foreach ($jours as $jourNom => $requis) {
+                    foreach ($requis as $requisId => $membreId) {
+                        if (! empty($membreId)) {
+                            $hasAtLeastOneMember = true;
+                            break 3;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (! $hasAtLeastOneMember) {
+            return back()->withErrors([
+                'all_designations' => 'Vous devez sélectionner au moins un membre dans la grille des désignations.'
+            ])->withInput();
+        }
+
+        // 6. CRÉER LA DÉSIGNATION PRINCIPALE
         $designation = Designation::create([
             'semaine_nom'         => $validated['semaine_nom'],
             'sous_departement_id' => $validated['sous_departement_id'],
             'date_debut'          => $dateDebutFormatee,
             'date_fin'            => $dateFinFormatee,
             'statut'              => $statutInitial,
-            // 'notes_generales'     => $validated['notes_generales'],
             'createur_id'         => $request->user()->id,
         ]);
 
-        // 3. Tableau de correspondance pour l'ajout des jours (Mode Calendrier)
-        // Ajustez les clés ('Vendredi', 'Samedi'...) selon les valeurs exactes stockées dans votre colonne 'jour'
+        // 7. SÉCURISATION DES CLÉS DE JOURS POUR LA BOUCLE (Tout en minuscules)
         $joursAjouter = [
-            'Vendredi' => 0,
-            'Samedi'   => 1,
-            'Dimanche' => 2,
-            'Lundi'    => 3,
-            'Mardi'    => 4,
-            'Mercredi' => 5,
+            'vendredi' => 0,
+            'samedi'   => 1,
+            'dimanche' => 2,
+            'lundi'    => 3,
+            'mardi'    => 4,
+            'mercredi' => 5,
             'jeudi'    => 6,
         ];
 
-        // 4. Parcourir la grille all_designations
-        if ($request->has('all_designations')) {
-            foreach ($request->input('all_designations') as $labId => $jours) {
-                foreach ($jours as $jourNom => $requis) {
-                    foreach ($requis as $requisId => $membreId) {
+        // 8. INSERTION DES ENREGISTREMENTS LIÉS
+        foreach ($request->input('all_designations') as $labId => $jours) {
+            foreach ($jours as $jourNom => $requis) {
+                foreach ($requis as $requisId => $membreId) {
 
-                        if (! empty($membreId)) {
+                    if (! empty($membreId)) {
+                        $dateEffective = $baseDate->copy();
 
-                            // Par défaut, la date effective est la date de début
-                            $dateEffective = $baseDate->copy();
+                        $configJour = LaboratoireConfig::where('jour_label', $jourNom)
+                            ->where('laboratoire_id', $labId)
+                            ->first();
 
-                            // Récupérer la configuration du jour pour vérifier son type (fixe ou calendrier)
-                            // 'requisId' correspond à l'ID de la ligne requise qui est liée à la config du jour
-                            $configJour = LaboratoireConfig::where('jour_label', $jourNom)
-                                ->where('laboratoire_id', $labId)
-                                ->first();
-
-                            if ($configJour) {
-                                // SI le type est 'calendrier' (ou n'est PAS 'fixe')
-                                if ($configJour->type_config !== 'fixe') {
-                                    // On récupère le nombre de jours à ajouter (ex: samedi = 1)
-                                    // On passe le nom du jour en minuscule pour éviter les surprises
-                                    $joursEnPlus = $joursAjouter[strtolower($jourNom)] ?? 0;
-                                    $dateEffective->addDays($joursEnPlus);
-                                }
-                                // SI le type est 'fixe', on ne fait rien, la date reste $baseDate (+0)
-                            }
-
-                            // Insertion finale avec la bonne date calculée
-                            DesignationItem::create([
-                                'designation_id'        => $designation->id,
-                                'laboratoire_id'        => $labId,
-                                'laboratoire_config_id' => $requisId,
-                                'membre_id'             => $membreId,
-                                'date_effective'        => $dateEffective->format('Y-m-d'),
-                            ]);
+                        if ($configJour && $configJour->type_config !== 'fixe') {
+                            $joursEnPlus = $joursAjouter[strtolower($jourNom)] ?? 0;
+                            $dateEffective->addDays($joursEnPlus);
                         }
 
+                        DesignationItem::create([
+                            'designation_id'        => $designation->id,
+                            'laboratoire_id'        => $labId,
+                            'laboratoire_config_id' => $requisId,
+                            'membre_id'             => $membreId,
+                            'date_effective'        => $dateEffective->format('Y-m-d'),
+                        ]);
                     }
                 }
             }
         }
 
-        // 6. Redirection automatique vers l'index avec un message flash de succès
         return redirect()->route('designations.index')
             ->with('success', 'La planification a été créée et est en attente de validation.');
-
-        // ... reste de votre logique (redirection ou réponse JSON)
-
-        //return response()->json($designation, 201);
     }
-
     public function update(Request $request, Designation $designation)
     {
         $validated = $request->validate([
@@ -817,5 +829,4 @@ class DesignationPageController extends Controller
         //dd($membres);
         return response()->json($membres->values()->all());
     }
-
 }

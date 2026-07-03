@@ -56,7 +56,8 @@ const CreateDesignation = ({
 
     const submit = (e) => {
         e.preventDefault();
-
+        // cnsole.log("Données soumises :", data); // Pour le débogage
+        // return;
         post(route("designations.store"), {
             onError: (errors) => {
                 // On récupère le premier message d'erreur ou un message générique

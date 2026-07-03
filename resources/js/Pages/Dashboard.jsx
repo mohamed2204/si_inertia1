@@ -38,7 +38,17 @@ const Dashboard = () => {
                     style={{ textDecoration: 'none', display: 'inline-block', padding: '0.5rem 1rem' }}
                 >
                     <span className="p-button-icon p-button-icon-left pi pi-file-excel"></span>
-                    <span className="p-button-label">Télécharger le Rapport Excel</span>
+                    <span className="p-button-label">Télécharger le Rapport Excel v3</span>
+                </a>
+                <a
+                    href="/rapport/download"
+                    //download // <-- FORCE le navigateur à traiter l'URL comme un téléchargement
+                    target="_blank" // <-- Ouvre dans un nouvel onglet pour éviter de casser la session React actuelle
+                    className="p-button p-component p-button-success"
+                    style={{ textDecoration: 'none', display: 'inline-block', padding: '0.5rem 1rem' }}
+                >
+                    <span className="p-button-icon p-button-icon-left pi pi-file-pdf"></span>
+                    <span className="p-button-label">Télécharger le Rapport PDF v2</span>
                 </a>
             </div>
         </Layout>

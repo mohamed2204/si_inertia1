@@ -4,16 +4,16 @@ import react from '@vitejs/plugin-react';
 // import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import basicSsl from '@vitejs/plugin-basic-ssl';
+import fs from 'fs'; // Ajout pour une détection Docker à 100% fiable
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ command }) => {
-    // Détection de l'environnement Docker via une variable d'environnement
-    const isDocker = process.env.IS_DOCKER === 'true';
+    // Détection automatique de Docker (via fichier ou variable d'environnement)
+    const isDocker = fs.existsSync('/.dockerenv') || process.env.IS_DOCKER === 'true';
 
-    // 1. Configuration de base commune (Windows local & Docker)
+    // 1. Configuration de base commune
     const config = {
         plugins: [
             laravel({
@@ -22,12 +22,13 @@ export default defineConfig(({ command }) => {
             }),
             // tailwindcss(),
             react(),
+            // basicSsl a été complètement retiré d'ici
         ],
         css: {
             preprocessorOptions: {
                 scss: {
-                    quietDeps: true, // Ignore les alertes venant des dépendances
-                    silenceDeprecations: ['import'], // Silence spécifiquement les alertes @import
+                    quietDeps: true,
+                    silenceDeprecations: ['import'],
                 },
             },
         },
@@ -38,28 +39,30 @@ export default defineConfig(({ command }) => {
         },
     };
 
-    // 2. On injecte le plugin SSL uniquement si on est en mode DEV et sous DOCKER
+    // 2. Configuration pour le serveur de développement dans Docker
     if (command === 'serve' && isDocker) {
-        config.plugins.unshift(basicSsl()); // Ajoute basicSsl au début du tableau des plugins
-        
+        // Suppression complète de basicSsl() ici aussi
+
         config.server = {
             watch: {
-                // On indique à Vite d'ignorer complètement ces dossiers lourds
                 ignored: [
                     '**/node_modules/**',
                     '**/vendor/**',
                     '**/storage/framework/views/**'
                 ],
             },
-            host: '0.0.0.0', // Permet l'accès depuis l'extérieur du conteneur
+            host: '0.0.0.0',
             port: 5173,
             strictPort: true,
-            cors: true, // Autorise explicitement les requêtes cross-origin de Nginx
-            origin: 'https://app1.work.local', // Dit à Vite que son origine publique est en HTTPS
+            cors: true, // Très important pour autoriser Laravel (HTTPS) à lire Vite (HTTP)
+
+            // Correction ici : l'origine passe en HTTP classique
+            // origin: 'http://si-app1.lan:5173', 
+            origin: 'https://si-app1.lan', // On passe par Nginx
             hmr: {
-                protocol: 'wss',
-                host: 'app1.work.local',
-                clientPort: 443,
+                protocol: 'ws',        // 'ws' car Nginx est sur le port 80 (HTTP)
+                host: 'si-app1.lan',   // Le navigateur envoie le signal à Nginx
+                clientPort: 80,        // Nginx intercepte sur le port 80 et redirige vers le 5173 de Windows
             },
         };
     }

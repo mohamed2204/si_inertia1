@@ -17,7 +17,7 @@ class ExcelController extends Controller
             abort(404, "Le fichier modèle n'existe pas.");
         }
 
-        // 2. Charger le modèle Excel
+        // 2. Charger le modèle Excel 111
         $spreadsheet = IOFactory::load($cheminModele);
         $feuille = $spreadsheet->getActiveSheet();
 
