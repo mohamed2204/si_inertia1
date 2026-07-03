@@ -31,11 +31,6 @@ class DesignationItem extends Model
         return $this->belongsTo(Designation::class);
     }
 
-    //    public function laboratoire(): BelongsTo
-    //    {
-    //        return $this->belongsTo(Laboratoire::class);
-    //    }
-
     public function membre(): BelongsTo
     {
         return $this->belongsTo(Membre::class);
@@ -44,11 +39,14 @@ class DesignationItem extends Model
     /**
      * La relation unique qui remplace ConfigJour, ConfigResponsable et ConfigRemplacant
      */
-    public function configuration()
+   /**
+     * Obtenir la configuration de laboratoire associée à cet item.
+     */
+    public function configuration(): BelongsTo
     {
+        // 💡 Ajustez 'laboratoire_config_id' si le nom de votre clé étrangère en BDD est différent
         return $this->belongsTo(LaboratoireConfig::class, 'laboratoire_config_id');
     }
-
     public function laboratoire(): BelongsTo
     {
         return $this->belongsTo(Laboratoire::class);

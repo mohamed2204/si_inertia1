@@ -17,7 +17,7 @@ interface AppMenuItemProps {
 const AppMenuitem = (props: AppMenuItemProps) => {
     const { item, index, root, parentKey } = props;
     
-    console.log('Rendering AppMenuitem:', item); // Debug pour vérifier les données de l'item
+    //console.log('Rendering AppMenuitem:', item); // Debug pour vérifier les données de l'item
 
     // 🛑 GAUDE-FOU 1 : Si l'élément entier est marqué caché, on n'affiche absolument rien
     if (item && item.visible === false) {

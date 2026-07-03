@@ -34,6 +34,21 @@ const FormDesignation = ({ departements = [], designation = null }) => {
     // 3. Hydratation automatique des cascades en mode Édition au chargement initial
     useEffect(() => {
         if (isEditMode && designation) {
+            // 🔥 FORCE LA SÉCURISATION DE LA STRUCTURE (Évite le piège du tableau vide [])
+            const rawItems = designation.formatted_items;
+            const cleanItems = (Array.isArray(rawItems) && rawItems.length === 0) ? {} : (rawItems || {});
+
+            // Injecte manuellement la grille reçue du serveur dans l'état du formulaire Inertia
+            setData(d => ({
+                ...d,
+                semaine_nom: designation.semaine_nom || d.semaine_nom,
+                date_debut: designation.date_debut ? new Date(designation.date_debut) : d.date_debut,
+                departement_id: designation.sous_departement?.departement_id || d.departement_id,
+                sous_departement_id: designation.sous_departement_id || d.sous_departement_id,
+                selected_lab_id: designation.items?.[0]?.laboratoire_id || d.selected_lab_id,
+                all_designations: cleanItems // 👈 C'est ça qui va remplir votre console.log et votre grille !
+            }));
+
             // Charger les sous-départements du département existant
             const deptId = designation?.sous_departement?.departement_id;
             if (deptId) {
@@ -123,13 +138,61 @@ const FormDesignation = ({ departements = [], designation = null }) => {
     };
 
     // 4. Soumission dynamique (POST ou PUT)
+    // const submit = (e) => {
+    //     e.preventDefault();
+    //     const payload = { ...data };
+    //     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    //     const options = {
+    //         ...payload,
+    //         browser_timezone: userTimeZone,
+    //     };
+
+    //     const config = {
+    //         onError: (errs) => {
+    //             const firstError = Object.values(errs)[0];
+    //             Swal.fire({ icon: 'error', title: 'Erreur', text: firstError || "Vérifiez le formulaire", toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    //         },
+    //         onSuccess: () => {
+    //             Swal.fire({ icon: 'success', title: isEditMode ? 'Planification mise à jour !' : 'Enregistré !', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    //         }
+    //     };
+
+    //     // Redirection conditionnelle de l'action Inertia
+    //     if (isEditMode) {
+    //         // Utilise la route de mise à jour pour l'édition
+    //         put(route("designations.api.update", designation.id), options, config);
+    //     } else {
+    //         // Utilise la route de stockage par défaut
+    //         post(route("designations.api.store"), options, config);
+    //     }
+    // };
     const submit = (e) => {
         e.preventDefault();
-        const payload = { ...data };
+
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+        // 1. On vérifie si formatted_items est un tableau (ex: []) ou un objet initialement vide
+        const rawFormattedItems = designation?.formatted_items;
+        const cleanFormattedItems = (Array.isArray(rawFormattedItems) && rawFormattedItems.length === 0)
+            ? {}
+            : (rawFormattedItems || {});
+
+        // 2. On applique la même sécurité sur data.all_designations
+        const cleanAllDesignations = (Array.isArray(data.all_designations) && data.all_designations.length === 0)
+            ? {}
+            : (data.all_designations || {});
+
+        // 3. On choisit la source qui contient réellement des clés
+        const finalDesignations = Object.keys(cleanAllDesignations).length > 0
+            ? cleanAllDesignations
+            : cleanFormattedItems;
+
+        console.log("*************** Final Designations to submit (CORRIGÉ):", finalDesignations);
+
         const options = {
-            ...payload,
+            ...data,
+            all_designations: finalDesignations,
             browser_timezone: userTimeZone,
         };
 
@@ -143,12 +206,13 @@ const FormDesignation = ({ departements = [], designation = null }) => {
             }
         };
 
-        // Redirection conditionnelle de l'action Inertia
         if (isEditMode) {
-            // Utilise la route de mise à jour pour l'édition
-            put(route("designations.api.update", designation.id), options, config);
+            // On passe par un "post" mais on ajoute la clé de spoofing _method: "PUT"
+            post(route("designations.api.update", designation.id), {
+                ...options,
+                _method: "PUT"
+            }, config);
         } else {
-            // Utilise la route de stockage par défaut
             post(route("designations.api.store"), options, config);
         }
     };
@@ -163,7 +227,7 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                 <h2 className="pb-3 mb-4 text-xl font-bold border-bottom-1 surface-border text-800">
                     <i className={`mr-2 ${isEditMode ? 'text-orange-500 pi pi-pencil' : 'text-blue-500 pi pi-calendar-plus'}`}></i>
                     {isEditMode ? `Modifier la Planification : ${designation.semaine_nom}` : "Nouvelle Planification Hebdomadaire"}
-                </h2> 
+                </h2>
 
                 <div className="grid p-3 mb-5 bg-bluegray-50 border-round-xl border-1 border-100">
                     <div className="col-12 md:col-6 lg:col-2">
@@ -256,10 +320,24 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                                                         </div>
                                                         <div className="py-0 col-9">
                                                             <AutoComplete
+                                                                // value={
+                                                                //     (Array.isArray(membres) ? membres : []).find(
+                                                                //         m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
+                                                                //     ) || data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || ''
+                                                                // }
                                                                 value={
+                                                                    // 1. Si le membre est présent dans la liste locale des suggestions (recherche en cours)
                                                                     (Array.isArray(membres) ? membres : []).find(
                                                                         m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
-                                                                    ) || data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || ''
+                                                                    ) ||
+                                                                    // 2. MODE ÉDITION INITIAL : Si la liste locale est vide, on extrait l'objet du membre
+                                                                    // depuis la relation chargée de l'objet "designation"
+                                                                    designation?.items?.find(item =>
+                                                                        item.laboratoire_id === currentLabConfig.id &&
+                                                                        item.laboratoire_config_id === req.id
+                                                                    )?.membre ||
+                                                                    // 3. Fallback par défaut
+                                                                    ''
                                                                 }
                                                                 suggestions={Array.isArray(membres) ? membres : []}
                                                                 completeMethod={searchMembres}
@@ -271,7 +349,7 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                                                                 style={{ height: "34px" }}
                                                                 onChange={(e) => {
                                                                     const selectedId = e.value?.id ? e.value.id : e.value;
-                                                                    handleMemberChange(currentLabConfig.id, conf.jour, req.id, selectedId);
+                                                                    handleMemberChange(currentLabConfig.id, conf.jour_label, req.id, selectedId);
                                                                 }}
                                                             />
                                                         </div>
@@ -286,12 +364,12 @@ const FormDesignation = ({ departements = [], designation = null }) => {
 
                         <div className="flex pt-4 mt-6 justify-content-end border-top-1">
                             {/* Libellé du bouton dynamique */}
-                            <Button 
-                                label={isEditMode ? "Mettre à jour la planification" : "Enregistrer la planification"} 
-                                icon="pi pi-check" 
-                                className={`px-5 py-3 font-bold border-round-xl shadow-3 ${isEditMode ? 'p-button-warning' : 'p-button-success'}`} 
-                                loading={processing} 
-                                onClick={submit} 
+                            <Button
+                                label={isEditMode ? "Mettre à jour la planification" : "Enregistrer la planification"}
+                                icon="pi pi-check"
+                                className={`px-5 py-3 font-bold border-round-xl shadow-3 ${isEditMode ? 'p-button-warning' : 'p-button-success'}`}
+                                loading={processing}
+                                onClick={submit}
                             />
                         </div>
                     </div>

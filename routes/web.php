@@ -58,12 +58,14 @@ Route::middleware(['auth'])->group(function () {
     //Route::get('/api/designations', [DesignationPageController::class, 'listApi'])->name('designations.list'); // C'est cette route qui est appelée par le service JS pour récupérer les données filtrées
     Route::get('/designations/create', [DesignationPageController::class, 'create'])
         ->name('designations.create');
-    Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])
+     Route::post('/api/designations', [DesignationPageController::class, 'store'])
+        ->name('designations.api.store');
+        Route::get('/designations/{designation}', [DesignationPageController::class, 'show'])
         ->name('designations.show');
     Route::get('/designations/{designation}/edit', [DesignationPageController::class, 'edit'])
         ->name('designations.edit');
-    Route::post('/api/designations', [DesignationPageController::class, 'store'])
-        ->name('designations.api.store');
+    Route::post('/api/designations/{designation}', [DesignationPageController::class, 'update'])
+        ->name('designations.api.update');
     Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])
         ->name('designations.api.destroy');
 

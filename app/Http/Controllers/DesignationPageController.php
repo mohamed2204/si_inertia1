@@ -102,7 +102,6 @@ class DesignationPageController extends Controller
             ->exists()
         );
 
-
         // =========================================================================
         // FILTRAGE DES DÉPARTEMENTS APPARENTS (Pour les filtres de l'interface)
         // =========================================================================
@@ -526,35 +525,80 @@ class DesignationPageController extends Controller
         return response()->json($designation);
     }
 
+    // public function edit($id)
+    // {
+    //     // Charger la désignation avec ses relations clés
+    //     $designation = Designation::with(['sousDepartement.departement', 'items.membre'])->findOrFail($id);
+
+    //     // Formater les sous-items pour l'état initial all_designations du Front React
+    //     $formattedItems = [];
+    //     foreach ($designation->items as $item) {
+    //         // Debug : vérifier les données de chaque item
+    //         // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
+    //         $jour = $item->laboratoire_config_id; // Ajustez selon votre colonne réelle stockant le jour
+
+    //         $formattedItems[$item->laboratoire_id][$jour][$item->laboratoire_config_id] = $item->membre_id;
+
+    //         //dd($formattedItems); // Debug : vérifier la structure finale envoyée au Front
+    //     }
+
+    //     // On injecte ce tableau virtuel dans l'objet désignation avant l'envoi
+    //     $designation->formatted_items = $formattedItems;
+
+    //     //dd($designation); // Debug : vérifier la structure finale envoyée au Front
+
+    //     return Inertia::render('Designations/FormDesignation', [
+    //         'departements' => Departement::all(['id', 'nom']),
+    //         'designation'  => $designation, // <-- Envoyé au composant !
+    //     ]);
+    // }
+
     public function edit($id)
     {
-        // Charger la désignation avec ses relations clés
-        $designation = Designation::with(['sousDepartement.departement', 'items.membre'])->findOrFail($id);
+        // On s'assure de bien charger la relation 'laboratoireConfig' pour connaître le nom du jour
+        $designation = Designation::with([
+            'sousDepartement.departement',
+            'items.membre',
+            //'items.configuration', // 👈 AJOUT IMPORTANT
+        ])->findOrFail($id);
 
-        // Formater les sous-items pour l'état initial all_designations du Front React
+        //dd($designation); // Debug : vérifier la structure finale envoyée au Front
+
+        // Configurer Carbon en français pour correspondre aux labels du Front
+        Carbon::setLocale('fr');
+
         $formattedItems = [];
         foreach ($designation->items as $item) {
-            // Debug : vérifier les données de chaque item
-            // Supposons que votre table d'items contient le jour (ex: 'lun', 'mar'...) ou que vous l'extrayez de la date effective
-            $jour = $item->laboratoire_config_id; // Ajustez selon votre colonne réelle stockant le jour
 
-            $formattedItems[$item->laboratoire_id][$jour][$item->laboratoire_config_id] = $item->membre_id;
+            // 1. Extraire le nom du jour en français à partir de la date_effective
+            // ex: "2026-07-03" devient "vendredi"
+            $jourKey = Carbon::parse($item->date_effective)->translatedFormat('l');
 
-            //dd($formattedItems); // Debug : vérifier la structure finale envoyée au Front
+            // Optionnel : Si vos labels au Front commencent par une majuscule (ex: "Vendredi")
+            $jourKey = ucfirst($jourKey);
+
+            // 2. Structurer le tableau exactement comme l'attend le composant React :
+            // [lab_id][nom_du_jour][requis_id] = membre_id
+            $formattedItems[$item->laboratoire_id][$jourKey][$item->laboratoire_config_id] = $item->membre_id;
         }
 
-        // On injecte ce tableau virtuel dans l'objet désignation avant l'envoi
-        $designation->formatted_items = $formattedItems;
+        //$designation->formatted_items = $formattedItems;
+
+
+        // Dans votre public function edit($id) juste avant le return :
+        $designation->formatted_items = empty($formattedItems) ? (object)[] : $formattedItems;
+
+        //dd($designation->formatted_items); // Debug : vérifier la structure finale envoyée au Front
 
         return Inertia::render('Designations/FormDesignation', [
             'departements' => Departement::all(['id', 'nom']),
-            'designation'  => $designation, // <-- Envoyé au composant !
+            'designation'  => $designation,
         ]);
     }
     public function store(Request $request)
     {
         // 1. Récupérer la chaîne ISO brute (ex: "2026-07-02T23:00:00.000Z")
-        $valeurOrigine = $request->input('date_debut');
+        $valeurOrigine     = $request->input('date_debut');
         $dateDebutFormatee = null;
 
         // On injecte 'en_attente' par défaut si le front ne l'envoie pas
@@ -565,7 +609,7 @@ class DesignationPageController extends Controller
         $statutInitial = 'en_attente';
 
         // 2. CORRECTION DU FUSEAU HORAIRE AVANT LA VALIDATION
-        if (!is_null($valeurOrigine) && $valeurOrigine !== '' && $valeurOrigine !== 'null') {
+        if (! is_null($valeurOrigine) && $valeurOrigine !== '' && $valeurOrigine !== 'null') {
             try {
                 $timezone = $request->input('browser_timezone', config('app.timezone', 'UTC'));
 
@@ -588,31 +632,31 @@ class DesignationPageController extends Controller
         }
 
         // 3. PRÉPARER LES RÈGLES DE VALIDATION (Sur la date désormais corrigée à "2026-07-03")
-    $dateRules = ['required', 'date'];
+        $dateRules = ['required', 'date'];
 
-    if (!is_null($dateDebutFormatee)) {
-        $dateRules[] = Rule::unique('designations', 'date_debut')->where(function ($query) use ($request) {
-            return $query->where('sous_departement_id', $request->input('sous_departement_id'));
-        });
-    }
+        if (! is_null($dateDebutFormatee)) {
+            $dateRules[] = Rule::unique('designations', 'date_debut')->where(function ($query) use ($request) {
+                return $query->where('sous_departement_id', $request->input('sous_departement_id'));
+            });
+        }
 
-    // 4. LANCER LA VALIDATION (Elle recevra "2026-07-03", le 'required' fonctionnera si c'était vide)
-    $validated = $request->validate([
-        'date_debut'          => $dateRules,
-        'semaine_nom'         => 'required|string|max:255',
-        'sous_departement_id' => 'required|exists:sous_departements,id',
-        'notes_generales'     => 'nullable|string',
-        'all_designations'    => 'required|array|min:1',
-    ], [
-        'date_debut.required'       => 'La date de début est obligatoire.',
-        'date_debut.date'           => 'Le format de la date est invalide.',
-        'date_debut.unique'         => 'Une planification existe déjà pour ce sous-département à cette date.',
-        'all_designations.required' => 'Le tableau des désignations est obligatoire.',
-        'all_designations.min'      => 'Vous devez affecter au moins une désignation.',
-    ]);
+        // 4. LANCER LA VALIDATION (Elle recevra "2026-07-03", le 'required' fonctionnera si c'était vide)
+        $validated = $request->validate([
+            'date_debut'          => $dateRules,
+            'semaine_nom'         => 'required|string|max:255',
+            'sous_departement_id' => 'required|exists:sous_departements,id',
+            'notes_generales'     => 'nullable|string',
+            'all_designations'    => 'required|array|min:1',
+        ], [
+            'date_debut.required'       => 'La date de début est obligatoire.',
+            'date_debut.date'           => 'Le format de la date est invalide.',
+            'date_debut.unique'         => 'Une planification existe déjà pour ce sous-département à cette date.',
+            'all_designations.required' => 'Le tableau des désignations est obligatoire.',
+            'all_designations.min'      => 'Vous devez affecter au moins une désignation.',
+        ]);
 
-    // 5. DATE DE FIN CALCULÉE SUR LA BASE DE LA DATE CORRIGÉE
-    $dateFinFormatee = $baseDate->copy()->addDays(6)->format('Y-m-d');
+        // 5. DATE DE FIN CALCULÉE SUR LA BASE DE LA DATE CORRIGÉE
+        $dateFinFormatee = $baseDate->copy()->addDays(6)->format('Y-m-d');
 
         // 3. LANCER LA VALIDATION AVANT TOUT CALCUL OU INTERACTION BDD
         $validated = $request->validate([
@@ -629,7 +673,6 @@ class DesignationPageController extends Controller
             'all_designations.min'      => 'Vous devez affecter au moins une désignation.',
         ]);
 
-       
         // 5. VÉRIFICATION SI AU MOINS UN MEMBRE A ÉTÉ CHOISI DANS LA GRILLE
         $hasAtLeastOneMember = false;
         if (is_array($request->input('all_designations'))) {
@@ -647,7 +690,7 @@ class DesignationPageController extends Controller
 
         if (! $hasAtLeastOneMember) {
             return back()->withErrors([
-                'all_designations' => 'Vous devez sélectionner au moins un membre dans la grille des désignations.'
+                'all_designations' => 'Vous devez sélectionner au moins un membre dans la grille des désignations.',
             ])->withInput();
         }
 
@@ -704,20 +747,165 @@ class DesignationPageController extends Controller
         return redirect()->route('designations.index')
             ->with('success', 'La planification a été créée et est en attente de validation.');
     }
+    // public function update(Request $request, Designation $designation)
+    // {
+    //     $validated = $request->validate([
+    //         'semaine_nom'         => 'required|string|max:255',
+    //         'sous_departement_id' => 'required|exists:sous_departements,id',
+    //         'statut'              => 'required|in:publiee,en_attente,inactive',
+    //         // 'notes_generales'     => 'nullable|string',
+    //     ]);
+
+    //     $designation->update($validated);
+
+    //     return response()->json($designation);
+    // }
+
     public function update(Request $request, Designation $designation)
     {
+        //dd($request->all()); // Debug : vérifier les données reçues du front
+
+        // Si le front-end n'envoie pas de statut, on conserve le statut actuel de la base de données
+        if (!$request->has('statut')) {
+            $request->merge(['statut' => $designation->statut ?? 'en_attente']);
+        }
+
+        // 1. Récupérer la chaîne ISO brute de la date
+        $valeurOrigine     = $request->input('date_debut');
+        $dateDebutFormatee = null;
+
+        // 2. CORRECTION DU FUSEAU HORAIRE AVANT LA VALIDATION
+        if (! is_null($valeurOrigine) && $valeurOrigine !== '' && $valeurOrigine !== 'null') {
+            try {
+                $timezone = $request->input('browser_timezone', config('app.timezone', 'UTC'));
+
+                // Si c'est déjà un format Y-m-d (parce que bloqué en édition), Carbon le gérera très bien
+                $baseDate = Carbon::parse($valeurOrigine, 'UTC')->setTimezone($timezone);
+
+                // Le correcteur automatique d'heures (décalage UTC)
+                if ($baseDate->hour == 23 || $baseDate->hour == 22) {
+                    $baseDate->addHours(3);
+                }
+
+                $dateDebutFormatee = $baseDate->format('Y-m-d');
+                $request->merge(['date_debut' => $dateDebutFormatee]);
+            } catch (\Exception $e) {
+                return back()->withErrors(['date_debut' => 'Le format de la date est invalide.']);
+            }
+        }
+
+        // 3. PRÉPARER LES RÈGLES DE VALIDATION (Avec exception pour la désignation en cours d'édition)
+        $dateRules = ['required', 'date'];
+
+        if (! is_null($dateDebutFormatee)) {
+            // 🔥 ->ignore($designation->id) est CRUCIAL ici pour éviter que Laravel ne refuse la mise à jour
+            // en croyant que la date (qui appartient déjà à cette fiche) est un doublon.
+            $dateRules[] = Rule::unique('designations', 'date_debut')
+                ->ignore($designation->id)
+                ->where(function ($query) use ($request) {
+                    return $query->where('sous_departement_id', $request->input('sous_departement_id'));
+                });
+        }
+
+        // 4. LANCER LA VALIDATION DE LA FICHE PRINCIPALE
         $validated = $request->validate([
+            'date_debut'          => $dateRules,
             'semaine_nom'         => 'required|string|max:255',
             'sous_departement_id' => 'required|exists:sous_departements,id',
             'statut'              => 'required|in:publiee,en_attente,inactive',
-            // 'notes_generales'     => 'nullable|string',
+            'all_designations'    => 'required|array|min:1',
+        ], [
+            'date_debut.required'       => 'La date de début est obligatoire.',
+            'date_debut.unique'         => 'Une planification existe déjà pour ce sous-département à cette date.',
+            'all_designations.required' => 'Le tableau des désignations est obligatoire.',
         ]);
 
-        $designation->update($validated);
+        // 5. VÉRIFICATION DE LA GRILLE DES MEMBRES
+        $hasAtLeastOneMember = false;
+        if (is_array($request->input('all_designations'))) {
+            foreach ($request->input('all_designations') as $labId => $jours) {
+                foreach ($jours as $jourNom => $requis) {
+                    foreach ($requis as $requisId => $membreId) {
+                        if (! empty($membreId)) {
+                            $hasAtLeastOneMember = true;
+                            break 3;
+                        }
+                    }
+                }
+            }
+        }
 
-        return response()->json($designation);
+        if (! $hasAtLeastOneMember) {
+            return back()->withErrors([
+                'all_designations' => 'Vous devez sélectionner au moins un membre dans la grille des désignations.',
+            ])->withInput();
+        }
+
+        // 6. CALCULER LA DATE DE FIN
+        $dateFinFormatee = $baseDate->copy()->addDays(6)->format('Y-m-d');
+
+        // 7. METTRE À JOUR LA DÉSIGNATION PARENTE
+        $designation->update([
+            'semaine_nom'         => $validated['semaine_nom'],
+            'sous_departement_id' => $validated['sous_departement_id'],
+            'date_debut'          => $dateDebutFormatee,
+            'date_fin'            => $dateFinFormatee,
+            'statut'              => $validated['statut'],
+        ]);
+
+        // 8. SYNCHRONISATION DES ITEMS (Le secret de la mise à jour)
+        // Au lieu de faire des "update" complexes, on supprime proprement les anciens items
+        // liés à cette désignation, puis on réinsère la nouvelle grille modifiée.
+        $designation->items()->delete();
+
+        $joursAjouter = [
+            'vendredi' => 0,
+            'samedi'   => 1,
+            'dimanche' => 2,
+            'lundi'    => 3,
+            'mardi'    => 4,
+            'mercredi' => 5,
+            'jeudi'    => 6,
+        ];
+
+        // 9. RE-CRÉATION DES ITEMS MIS À JOUR
+        foreach ($request->input('all_designations') as $labId => $jours) {
+            foreach ($jours as $jourNom => $requis) {
+                foreach ($requis as $requisId => $membreId) {
+
+                    if (! empty($membreId)) {
+                        // On repart de la date de début validée (Y-m-d)
+                        $dateEffective = Carbon::parse($dateDebutFormatee);
+
+                        // Sécurité : On passe le nom du jour en minuscules pour correspondre au dictionnaire
+                        $jourNomMinuscule = strtolower($jourNom);
+
+                        // Calcul de la date dynamique selon le jour de la grille
+                        if (array_key_exists($jourNomMinuscule, $joursAjouter)) {
+                            $joursEnPlus = $joursAjouter[$jourNomMinuscule];
+                            $dateEffective->addDays($joursEnPlus);
+                        }
+
+                        // Insertion de la ligne
+                        DesignationItem::create([
+                            'designation_id'        => $designation->id,
+                            'laboratoire_id'        => $labId,
+                            'laboratoire_config_id' => $requisId, // 18961, 18966...
+                            'membre_id'             => $membreId,     // 1, 2...
+                            'date_effective'        => $dateEffective->format('Y-m-d'),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        //dd($designation->formatted_items); // Debug : vérifier la structure finale après mise à jour
+
+        // 10. REDIRECTION INERTIA (ou réponse JSON selon votre configuration globale,
+        // mais comme vous utilisez useForm de Inertia, redirect->route est l'idéal pour rafraîchir le composant)
+        return redirect()->route('designations.index')
+            ->with('success', 'La planification a été mise à jour avec succès.');
     }
-
     public function destroy(Designation $designation)
     {
         $designation->delete();

@@ -9,7 +9,7 @@ const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
     const { auth } = usePage().props;
     const user = auth?.user;
-    console.log('Données utilisateur dans AppMenu:', user); // Debug pour vérifier les données de l'utilisateur
+    //console.log('Données utilisateur dans AppMenu:', user); // Debug pour vérifier les données de l'utilisateur
 
     /**
      * Helper unique et dynamique pour tester l'accès à un module
