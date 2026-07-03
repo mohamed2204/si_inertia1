@@ -188,7 +188,7 @@ const FormDesignation = ({ departements = [], designation = null }) => {
             ? cleanAllDesignations
             : cleanFormattedItems;
 
-        console.log("*************** Final Designations to submit (CORRIGÉ):", finalDesignations);
+        //console.log("*************** Final Designations to submit (CORRIGÉ):", finalDesignations);
 
         const options = {
             ...data,

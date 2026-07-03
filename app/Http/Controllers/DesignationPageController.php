@@ -11,6 +11,7 @@ use App\Models\Membre;
 use App\Models\SousDepartement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf; // 👈 N'oubliez pas d'importer la façade en haut du fichier
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -911,7 +912,6 @@ class DesignationPageController extends Controller
         $designation->delete();
         return response()->json(null, 204);
     }
-
     public function duplicate(Designation $designation)
     {
         $newDesignation               = $designation->replicate();
@@ -1016,5 +1016,49 @@ class DesignationPageController extends Controller
 
         //dd($membres);
         return response()->json($membres->values()->all());
+    }
+
+    /**
+     * Génère et affiche le rapport PDF d'une désignation hebdomadaire.
+     */
+    public function telechargerRapport($id)
+    {
+        // 1. Récupération de la désignation avec toutes ses données réelles
+        $designation = Designation::with([
+            'sousDepartement.departement',
+            'items.membre',
+            'items.laboratoire'
+        ])->findOrFail($id);
+
+        // 2. Préparation des variables textuelles réelles
+        $info1 = $designation->semaine_nom; // Ex: "Semaine 27 - 2026"
+        $info2 = "Département : " . ($designation->sousDepartement->departement->nom ?? 'N/A') .
+            " (" . ($designation->sousDepartement->nom ?? 'N/A') . ")";
+
+        // 3. Récupération et formatage des items réels de la BDD
+        // Vous pouvez trier par date effective pour que le tableau du PDF soit chronologique
+        $items = $designation->items->sortBy('date_effective')->map(function ($item) {
+            return [
+                'date' => Carbon::parse($item->date_effective)->translatedFormat('d/m/Y'),
+                'jour' => ucfirst(Carbon::parse($item->date_effective)->translatedFormat('l')),
+                'labo' => $item->laboratoire->nom ?? 'N/A',
+                'membre' => $item->membre->nom ?? 'N/A',
+                'prenom' => $item->membre->prenom ?? 'N/A',
+                'fonction' => $item->membre->fonction ?? 'N/A',
+                // Vous pouvez ajouter d'autres attributs si votre vue blade en a besoin :
+                'observations' => $item->observations,
+            ];
+        });
+
+        // 4. Chargement de la vue 'resources/views/pdf/designation.blade.php' avec les vraies données
+        $pdf = Pdf::loadView('pdf.designation', compact('designation', 'info1', 'info2', 'items'));
+
+        // 5. Configuration du format de la page
+        $pdf->setPaper('a4', 'portrait');
+
+        // 6. Affichage direct dans le navigateur (recommandé avec target="_blank" côté React)
+        $nomFichier = 'rapport-planification-' . $designation->id . '-' . Carbon::parse($designation->date_debut)->format('Y-m-d') . '.pdf';
+
+        return $pdf->stream($nomFichier);
     }
 }

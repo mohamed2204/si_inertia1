@@ -69,6 +69,10 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/api/designations/{designation}', [DesignationPageController::class, 'destroy'])
         ->name('designations.api.destroy');
 
+    Route::get('/designations/{id}/pdf', [DesignationPageController::class, 'telechargerRapport'])
+    ->name('designations.pdf')
+    ->middleware(['auth']); // Ajoutez vos middlewares de sécurité si nécessaire
+    
     // Récupérer les labos d'un sous-département
     Route::get('/api/sous-departements/{sous_departement}/labs', [DesignationPageController::class, 'getLabsBySousDept']);
 

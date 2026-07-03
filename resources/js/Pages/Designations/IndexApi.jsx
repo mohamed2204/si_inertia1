@@ -77,6 +77,21 @@ export default function Index({ initialDepartments, filters, can_create }) {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="flex gap-2 justify-content-center">
+
+                {/* 📄 BOUTON PDF (Accessible à tous, ou à restreindre selon vos besoins) */}
+                <a
+                    href={`/designations/${rowData.id}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Voir le rapport PDF"
+                >
+                    <Button
+                        icon="pi pi-file-pdf"
+                        className="p-button-rounded p-button-danger p-button-outlined p-button-sm"
+                        style={{ borderColor: '#e24c4c', color: '#e24c4c' }} // Rouge PDF élégant
+                    />
+                </a>
+
                 {rowData.can_edit && (
                     <Link href={`/designations/${rowData.id}/edit`}>
                         <Button
