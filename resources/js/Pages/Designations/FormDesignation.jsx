@@ -13,7 +13,7 @@ import { AutoComplete } from 'primereact/autocomplete';
 const FormDesignation = ({ departements = [], designation = null }) => {
     // Mode détective : si un objet designation existe, on est en mode édition
     const isEditMode = !!designation;
-
+    console.log("*************** FormDesignation Rendered. isEditMode:", isEditMode, "designation:", designation);
     const [sousDepts, setSousDepts] = useState([]);
     const [labs, setLabs] = useState([]);
     const [currentLabConfig, setCurrentLabConfig] = useState(null);
@@ -31,14 +31,14 @@ const FormDesignation = ({ departements = [], designation = null }) => {
         all_designations: designation?.formatted_items || {}, // Les items structurés {labId: {jour: {reqId: membre}}}
     });
 
-    // 3. Hydratation automatique des cascades en mode Édition au chargement initial
+    // 1. Hydratation initiale des données textuelles et dates du formulaire
     useEffect(() => {
         if (isEditMode && designation) {
-            // 🔥 FORCE LA SÉCURISATION DE LA STRUCTURE (Évite le piège du tableau vide [])
             const rawItems = designation.formatted_items;
+            console.log("*************** Raw Items from designation.formatted_items:", rawItems);
+
             const cleanItems = (Array.isArray(rawItems) && rawItems.length === 0) ? {} : (rawItems || {});
 
-            // Injecte manuellement la grille reçue du serveur dans l'état du formulaire Inertia
             setData(d => ({
                 ...d,
                 semaine_nom: designation.semaine_nom || d.semaine_nom,
@@ -46,40 +46,30 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                 departement_id: designation.sous_departement?.departement_id || d.departement_id,
                 sous_departement_id: designation.sous_departement_id || d.sous_departement_id,
                 selected_lab_id: designation.items?.[0]?.laboratoire_id || d.selected_lab_id,
-                all_designations: cleanItems // 👈 C'est ça qui va remplir votre console.log et votre grille !
+                all_designations: cleanItems
             }));
-
-            // Charger les sous-départements du département existant
-            const deptId = designation?.sous_departement?.departement_id;
-            if (deptId) {
-                axios.get(`/api/departments/${deptId}/sous-departments`)
-                    .then(res => setSousDepts(res.data))
-                    .catch(err => console.error(err));
-            }
-            // Charger les labos du sous-département existant
-            if (designation.sous_departement_id) {
-                axios.get(`/api/sous-departements/${designation.sous_departement_id}/labs`)
-                    .then(res => setLabs(res.data))
-                    .catch(err => console.error(err));
-            }
         }
     }, [designation]);
 
-    // Charger les Sous-Départements au changement manuel
+    // 2. Chargement des Sous-Départements (Fonctionne en Création ET en Édition)
     useEffect(() => {
-        if (data.departement_id && !isEditMode) {
+        if (data.departement_id) {
             axios.get(`/api/departments/${data.departement_id}/sous-departments`)
                 .then(res => setSousDepts(res.data))
                 .catch(err => console.error("Erreur sous-depts", err));
+        } else {
+            setSousDepts([]);
         }
     }, [data.departement_id]);
 
-    // Charger les Laboratoires au changement manuel
+    // 3. Chargement des Laboratoires (Fonctionne en Création ET en Édition)
     useEffect(() => {
-        if (data.sous_departement_id && !isEditMode) {
+        if (data.sous_departement_id) {
             axios.get(`/api/sous-departements/${data.sous_departement_id}/labs`)
                 .then(res => setLabs(res.data))
                 .catch(err => console.error("Erreur labs", err));
+        } else {
+            setLabs([]);
         }
     }, [data.sous_departement_id]);
 
@@ -128,15 +118,27 @@ const FormDesignation = ({ departements = [], designation = null }) => {
             });
     };
 
+    // const handleMemberChange = (labId, jour, requisId, membreId) => {
+    //     const newDesignations = { ...data.all_designations };
+    //     if (!newDesignations[labId]) newDesignations[labId] = {};
+    //     if (!newDesignations[labId][jour]) newDesignations[labId][jour] = {};
+
+    //     newDesignations[labId][jour][requisId] = membreId;
+    //     setData("all_designations", newDesignations);
+    // };
+
     const handleMemberChange = (labId, jour, requisId, membreId) => {
-        const newDesignations = { ...data.all_designations };
-        if (!newDesignations[labId]) newDesignations[labId] = {};
-        if (!newDesignations[labId][jour]) newDesignations[labId][jour] = {};
-
-        newDesignations[labId][jour][requisId] = membreId;
-        setData("all_designations", newDesignations);
+        setData("all_designations", {
+            ...data.all_designations,
+            [labId]: {
+                ...(data.all_designations[labId] || {}),
+                [jour]: {
+                    ...(data.all_designations[labId]?.[jour] || {}),
+                    [requisId]: membreId
+                }
+            }
+        });
     };
-
     // 4. Soumission dynamique (POST ou PUT)
     // const submit = (e) => {
     //     e.preventDefault();
@@ -167,32 +169,68 @@ const FormDesignation = ({ departements = [], designation = null }) => {
     //         post(route("designations.api.store"), options, config);
     //     }
     // };
+    // const submit = (e) => {
+    //     e.preventDefault();
+
+    //     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    //     // 1. On vérifie si formatted_items est un tableau (ex: []) ou un objet initialement vide
+    //     const rawFormattedItems = designation?.formatted_items;
+    //     const cleanFormattedItems = (Array.isArray(rawFormattedItems) && rawFormattedItems.length === 0)
+    //         ? {}
+    //         : (rawFormattedItems || {});
+
+    //     // 2. On applique la même sécurité sur data.all_designations
+    //     const cleanAllDesignations = (Array.isArray(data.all_designations) && data.all_designations.length === 0)
+    //         ? {}
+    //         : (data.all_designations || {});
+
+    //     // 3. On choisit la source qui contient réellement des clés
+    //     const finalDesignations = Object.keys(cleanAllDesignations).length > 0
+    //         ? cleanAllDesignations
+    //         : cleanFormattedItems;
+
+    //     //console.log("*************** Final Designations to submit (CORRIGÉ):", finalDesignations);
+
+    //     const options = {
+    //         ...data,
+    //         all_designations: finalDesignations,
+    //         browser_timezone: userTimeZone,
+    //     };
+
+    //     const config = {
+    //         onError: (errs) => {
+    //             const firstError = Object.values(errs)[0];
+    //             Swal.fire({ icon: 'error', title: 'Erreur', text: firstError || "Vérifiez le formulaire", toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    //         },
+    //         onSuccess: () => {
+    //             Swal.fire({ icon: 'success', title: isEditMode ? 'Planification mise à jour !' : 'Enregistré !', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    //         }
+    //     };
+
+    //     if (isEditMode) {
+    //         // On passe par un "post" mais on ajoute la clé de spoofing _method: "PUT"
+    //         post(route("designations.api.update", designation.id), {
+    //             ...options,
+    //             _method: "PUT"
+    //         }, config);
+    //     } else {
+    //         post(route("designations.api.store"), options, config);
+    //     }
+    // };
     const submit = (e) => {
         e.preventDefault();
 
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        // 1. On vérifie si formatted_items est un tableau (ex: []) ou un objet initialement vide
-        const rawFormattedItems = designation?.formatted_items;
-        const cleanFormattedItems = (Array.isArray(rawFormattedItems) && rawFormattedItems.length === 0)
-            ? {}
-            : (rawFormattedItems || {});
-
-        // 2. On applique la même sécurité sur data.all_designations
+        // Structure propre sans risque de perte
         const cleanAllDesignations = (Array.isArray(data.all_designations) && data.all_designations.length === 0)
             ? {}
             : (data.all_designations || {});
 
-        // 3. On choisit la source qui contient réellement des clés
-        const finalDesignations = Object.keys(cleanAllDesignations).length > 0
-            ? cleanAllDesignations
-            : cleanFormattedItems;
-
-        //console.log("*************** Final Designations to submit (CORRIGÉ):", finalDesignations);
-
         const options = {
             ...data,
-            all_designations: finalDesignations,
+            all_designations: cleanAllDesignations,
             browser_timezone: userTimeZone,
         };
 
@@ -207,7 +245,6 @@ const FormDesignation = ({ departements = [], designation = null }) => {
         };
 
         if (isEditMode) {
-            // On passe par un "post" mais on ajoute la clé de spoofing _method: "PUT"
             post(route("designations.api.update", designation.id), {
                 ...options,
                 _method: "PUT"
@@ -216,7 +253,6 @@ const FormDesignation = ({ departements = [], designation = null }) => {
             post(route("designations.api.store"), options, config);
         }
     };
-
     return (
         <Layout>
             {/* Titre de l'onglet dynamique */}
@@ -320,23 +356,16 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                                                         </div>
                                                         <div className="py-0 col-9">
                                                             <AutoComplete
-                                                                // value={
-                                                                //     (Array.isArray(membres) ? membres : []).find(
-                                                                //         m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
-                                                                //     ) || data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id] || ''
-                                                                // }
                                                                 value={
-                                                                    // 1. Si le membre est présent dans la liste locale des suggestions (recherche en cours)
+                                                                    // 1. Recherche dans les suggestions locales (Clé harmonisée sur conf.jour_label)
                                                                     (Array.isArray(membres) ? membres : []).find(
-                                                                        m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour]?.[req.id]
+                                                                        m => m.id === data.all_designations[currentLabConfig.id]?.[conf.jour_label]?.[req.id]
                                                                     ) ||
-                                                                    // 2. MODE ÉDITION INITIAL : Si la liste locale est vide, on extrait l'objet du membre
-                                                                    // depuis la relation chargée de l'objet "designation"
+                                                                    // 2. MODE ÉDITION INITIAL
                                                                     designation?.items?.find(item =>
                                                                         item.laboratoire_id === currentLabConfig.id &&
                                                                         item.laboratoire_config_id === req.id
                                                                     )?.membre ||
-                                                                    // 3. Fallback par défaut
                                                                     ''
                                                                 }
                                                                 suggestions={Array.isArray(membres) ? membres : []}
@@ -349,6 +378,7 @@ const FormDesignation = ({ departements = [], designation = null }) => {
                                                                 style={{ height: "34px" }}
                                                                 onChange={(e) => {
                                                                     const selectedId = e.value?.id ? e.value.id : e.value;
+                                                                    // 🔥 Utilise conf.jour_label pour s'aligner avec la lecture
                                                                     handleMemberChange(currentLabConfig.id, conf.jour_label, req.id, selectedId);
                                                                 }}
                                                             />
