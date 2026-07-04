@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ class DesignationItem extends Model
         'designation_id',
         'laboratoire_id',        // <--- C'est maintenant la clé de voûte
         'laboratoire_config_id', // <--- Remplace config_jour_id, config_responsable_id, config_remplacant_id
-                                 //'role_tache_id',   // <--- C'est lui le remplaçant de tache_id, config_jour_id, etc.
+        //'role_tache_id',   // <--- C'est lui le remplaçant de tache_id, config_jour_id, etc.
         'membre_id',
         'date_effective',
         'observations',
@@ -39,7 +40,7 @@ class DesignationItem extends Model
     /**
      * La relation unique qui remplace ConfigJour, ConfigResponsable et ConfigRemplacant
      */
-   /**
+    /**
      * Obtenir la configuration de laboratoire associée à cet item.
      */
     public function configuration(): BelongsTo
@@ -47,6 +48,16 @@ class DesignationItem extends Model
         // 💡 Ajustez 'laboratoire_config_id' si le nom de votre clé étrangère en BDD est différent
         return $this->belongsTo(LaboratoireConfig::class, 'laboratoire_config_id');
     }
+
+    /**
+     * Relation réelle vers la table laboratoire_config_requis
+     */
+    public function requisConfig(): BelongsTo
+    {
+        // Elle pointe sur le modèle des Requis, là où se trouve la contrainte SQL
+        return $this->belongsTo(LaboratoireConfigRequis::class, 'laboratoire_config_id');
+    }
+
     public function laboratoire(): BelongsTo
     {
         return $this->belongsTo(Laboratoire::class);

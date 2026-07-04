@@ -19,7 +19,7 @@ class LaboratoireConfigRequis extends Model
     ];
 
     // Relation inverse : un requis appartient à une config de labo
-    public function config()
+    public function laboratoireConfig()
     {
         return $this->belongsTo(LaboratoireConfig::class, 'lab_config_id');
     }

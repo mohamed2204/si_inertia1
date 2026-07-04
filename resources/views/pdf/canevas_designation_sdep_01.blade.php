@@ -112,7 +112,7 @@
         </thead>
         <tbody>
             @foreach($items as $item)
-            <tr>
+            <tr class="{{ $item['type'] === 'fixe' ? 'bg-orange-50 font-bold' : '' }}">
                 <td class="col-date">
                     <strong>{{ $item['jour'] }}</strong><br>
                     <strong>{{ $item['date'] }}</strong>

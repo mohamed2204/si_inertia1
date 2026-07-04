@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
+
 class DesignationPageController extends Controller
 {
 
@@ -1450,19 +1451,68 @@ class DesignationPageController extends Controller
             " (" . ($designation->sousDepartement->nom ?? 'N/A') . ")";
 
         // 3. Récupération et formatage des items réels de la BDD
-        // Vous pouvez trier par date effective pour que le tableau du PDF soit chronologique
-        $items = $designation->items->sortBy('date_effective')->map(function ($item) {
+        // 1. On s'assure d'avoir chargé la relation de configuration
+        $designation->load([
+            'items.laboratoire',
+            'items.membre',
+            'items.requisConfig.laboratoireConfig' // On remonte du Requis vers la Config globale du jour
+        ]);
+
+        //dd($designation->items); // Debug : vérifier la structure des items avant le filtrage
+
+        // 2. Séparer les éléments "calendrier"
+        $itemsCalendrier = $designation->items->filter(function ($item) {
+            // On remonte chercher le type_config via les deux niveaux de relations
+            $typeConfig = $item->requisConfig && $item->requisConfig->laboratoireConfig
+                ? $item->requisConfig->laboratoireConfig->type_config
+                : 'calendrier';
+
+            return $typeConfig === 'calendrier';
+        })->sortBy('date_effective')->map(function ($item) {
             return [
-                'date' => Carbon::parse($item->date_effective)->translatedFormat('d/m/Y'),
-                'jour' => ucfirst(Carbon::parse($item->date_effective)->translatedFormat('l')),
-                'labo' => $item->laboratoire->nom ?? 'N/A',
-                'membre' => $item->membre->nom ?? 'N/A',
-                'prenom' => $item->membre->prenom ?? 'N/A',
-                'fonction' => $item->membre->fonction ?? 'N/A',
-                // Vous pouvez ajouter d'autres attributs si votre vue blade en a besoin :
+                'date'         => Carbon::parse($item->date_effective)->translatedFormat('d/m/Y'),
+                'jour'         => ucfirst(Carbon::parse($item->date_effective)->translatedFormat('l')),
+                'labo'         => $item->laboratoire->nom ?? 'N/A',
+                'membre'       => $item->membre->nom ?? 'N/A',
+                'prenom'       => $item->membre->prenom ?? 'N/A',
+                'fonction'     => $item->membre->fonction ?? 'N/A',
                 'observations' => $item->observations,
+                'type'         => 'calendrier'
             ];
         });
+
+        //dd($itemsCalendrier); // Debug : vérifier la structure des items "calendrier" avant fusion
+
+        // 3. Séparer et formater les éléments "fixe" (Remplaçants)
+        $itemsFixe = $designation->items->filter(function ($item) {
+            $typeConfig = $item->requisConfig && $item->requisConfig->laboratoireConfig
+                ? $item->requisConfig->laboratoireConfig->type_config
+                : '';
+
+            return $typeConfig === 'fixe';
+        })->map(function ($item) {
+            //dd($item); // Debug : vérifier la structure des items "fixe" avant formatage
+            // Récupération du libellé "Remplaçants" depuis la table laboratoire_configs
+            $libelleFixe = $item->requisConfig && $item->requisConfig->laboratoireConfig
+                ? $item->requisConfig->laboratoireConfig->jour . ' - ' . $item->requisConfig->libelle
+                : 'Remplaçant';
+
+            return [
+                'date'         => '—',
+                'jour'         => ucfirst($libelleFixe), // Affichera dynamiquement "Remplaçants"
+                'labo'         => $item->laboratoire->nom ?? 'N/A',
+                'membre'       => $item->membre->nom ?? 'N/A',
+                'prenom'       => $item->membre->prenom ?? 'N/A',
+                'fonction'     => $item->membre->fonction ?? 'N/A',
+                'observations' => $item->observations,
+                'type'         => 'fixe'
+            ];
+        });
+
+        // 4. Fusion finale : Les jours de la semaine d'abord, les fixes en dernier
+        $items = $itemsCalendrier->concat($itemsFixe);
+
+        //dd($items); // Debug : vérifier la structure finale des items avant génération du PDF
 
         // 4. Chargement de la vue 'resources/views/pdf/designation.blade.php' avec les vraies données
         $pdf = Pdf::loadView($viewName, compact('designation', 'info1', 'info2', 'items'));
@@ -1474,40 +1524,5 @@ class DesignationPageController extends Controller
         $nomFichier = 'rapport-planification-' . $designation->id . '-' . Carbon::parse($designation->date_debut)->format('Y-m-d') . '.pdf';
 
         return $pdf->stream($nomFichier);
-
-
-        /*
-            Carbon::setLocale('fr');
-
-$formattedItems = [];
-
-foreach ($designation->items as $item) {
-    $dateCarbon = Carbon::parse($item->date_effective);
-    $jourNom = ucfirst($dateCarbon->translatedFormat('l'));
-    $dateFormatee = $dateCarbon->translatedFormat('d/m/Y');
-
-    $labName = $item->laboratoire->nom ?? 'Laboratoire';
-
-    // Clé unique pour grouper par Labo et par jour
-    $groupKey = $labName . '_' . $item->date_effective;
-
-    if (!isset($formattedItems[$groupKey])) {
-        $formattedItems[$groupKey] = [
-            'labo' => $labName,
-            'jour' => $jourNom,
-            'date' => $dateFormatee,
-            'membres' => [] // 🔥 Tableau pour accueillir PLUSIEURS membres
-        ];
-    }
-
-    // On ajoute le membre dans la liste de ce jour-là
-    $formattedItems[$groupKey]['membres'][] = $item->membre->nom ?? 'Non assigné';
-}
-
-// On trie pour garder l'ordre chronologique dans le PDF
-$items = collect($formattedItems)->sortBy('date');
-
-$pdf = Pdf::loadView($viewName, compact('designation', 'info1', 'info2', 'items'));
-        */
     }
 }
