@@ -27,4 +27,4 @@ Thumbs.db
 /storage/app/
 /storage/debugbar/
 /storage/framework/
-/storage/templates/
+/storage/templates/docker/stacks/app1_si/stack_images.tar.gz
