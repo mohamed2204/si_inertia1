@@ -21,6 +21,7 @@ class ProcessIncomingExcelEmails implements ShouldQueue
     protected array $allowedSenders = [
         'fournisseur@domaine.com',
         'partenaire@entreprise.com',
+        'hello@example.com'
     ];
 
     public function handle(): void
@@ -35,6 +36,10 @@ class ProcessIncomingExcelEmails implements ShouldQueue
         // Récupérer les messages non lus
         $messages = $folder->query()->unseen()->get();
 
+        Log::info("Nombre de messages non lus : " . count($messages));
+        
+        SendTestEmailJob::dispatch("Nombre de messages non lus : " . count($messages));
+        
         foreach ($messages as $message) {
             $senderEmail = strtolower($message->getFrom()[0]->mail);
 
