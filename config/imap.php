@@ -1,14 +1,14 @@
 <?php
 /*
-* File:     imap.php
-* Category: config
-* Author:   M. Goldenbaum
-* Created:  24.09.16 22:36
-* Updated:  -
-*
-* Description:
-*  -
-*/
+ * File:     imap.php
+ * Category: config
+ * Author:   M. Goldenbaum
+ * Created:  24.09.16 22:36
+ * Updated:  -
+ *
+ * Description:
+ *  -
+ */
 
 return [
 
@@ -46,15 +46,14 @@ return [
     */
     'accounts' => [
 
-        'default' => [// account identifier
-            'host'  => env('IMAP_HOST', 'localhost'),
-            //'port'  => env('IMAP_PORT', 993),
-            'port'  => env('IMAP_PORT', 993),
-            'protocol'  => env('IMAP_PROTOCOL', 'imap'), //might also use imap, [pop3 or nntp (untested)]
-            'encryption'    => env('IMAP_ENCRYPTION', 'ssl'), // Supported: false, 'ssl', 'tls', 'notls', 'starttls'
-            'validate_cert' => env('IMAP_VALIDATE_CERT', true),
-            'username' => env('IMAP_USERNAME', 'masterdc@exemple.net'),
-            'password' => env('IMAP_PASSWORD', ''),
+        'default' => [ // account identifier
+            'host' => env('IMAP_HOST', '192.168.1.4'),
+            'port' => env('IMAP_PORT', 3025), // 143 (IMAP sans SSL) ou 993 (IMAP SSL)
+            'protocol' => env('IMAP_PROTOCOL', 'imap'),
+            'encryption' => env('IMAP_ENCRYPTION', false), // 'false' au lieu de 'ssl'
+            'validate_cert' => env('IMAP_VALIDATE_CERT', false),
+            'username' => env('IMAP_USERNAME', 'admin@example.com'),
+            'password' => env('IMAP_PASSWORD', 'secret123'),
             'authentication' => env('IMAP_AUTHENTICATION', null),
             'proxy' => [
                 'socket' => null,
@@ -65,6 +64,25 @@ return [
             "timeout" => 30,
             "extensions" => []
         ],
+        // 'default' => [// account identifier
+        //     'host'  => env('IMAP_HOST', 'localhost'),
+        //     //'port'  => env('IMAP_PORT', 993),
+        //     'port'  => env('IMAP_PORT', 993),
+        //     'protocol'  => env('IMAP_PROTOCOL', 'imap'), //might also use imap, [pop3 or nntp (untested)]
+        //     'encryption'    => env('IMAP_ENCRYPTION', 'ssl'), // Supported: false, 'ssl', 'tls', 'notls', 'starttls'
+        //     'validate_cert' => env('IMAP_VALIDATE_CERT', true),
+        //     'username' => env('IMAP_USERNAME', 'masterdc@exemple.net'),
+        //     'password' => env('IMAP_PASSWORD', ''),
+        //     'authentication' => env('IMAP_AUTHENTICATION', null),
+        //     'proxy' => [
+        //         'socket' => null,
+        //         'request_fulluri' => false,
+        //         'username' => null,
+        //         'password' => null,
+        //     ],
+        //     "timeout" => 30,
+        //     "extensions" => []
+        // ],
 
         /*
         'gmail' => [ // account identifier

@@ -21,7 +21,7 @@ class ProcessIncomingExcelEmails implements ShouldQueue
     protected array $allowedSenders = [
         'fournisseur@domaine.com',
         'partenaire@entreprise.com',
-        'hello@example.com'
+        'admin@example.com'
     ];
 
     public function handle(): void
@@ -37,9 +37,13 @@ class ProcessIncomingExcelEmails implements ShouldQueue
         $messages = $folder->query()->unseen()->get();
 
         Log::info("Nombre de messages non lus : " . count($messages));
-        
-        SendTestEmailJob::dispatch("Nombre de messages non lus : " . count($messages));
-        
+
+        SendTestEmailJob::dispatch(
+            'admin@example.com',
+            'Traitement des e-mails Excel',
+            'Ceci est un traitement automatique des e-mails entrants contenant des fichiers Excel.<br>Nombre de messages non lus : ' . count($messages)
+        );
+
         foreach ($messages as $message) {
             $senderEmail = strtolower($message->getFrom()[0]->mail);
 
@@ -52,18 +56,27 @@ class ProcessIncomingExcelEmails implements ShouldQueue
             if ($message->hasAttachments()) {
                 foreach ($message->getAttachments() as $attachment) {
                     $extension = strtolower($attachment->getExtension());
-                    
+
+                     SendTestEmailJob::dispatch(
+                            'admin@example.com',
+                            'Vérifier si c\'est un fichier Excel',
+                            'Fichier attaché : ' . $attachment->getName()
+                        );
+
                     // Vérifier si c'est un fichier Excel (.xlsx ou .xls)
                     if (in_array($extension, ['xlsx', 'xls'])) {
-                        
+
                         // Sauvegarder la pièce jointe temporairement
                         $filePath = 'imports/' . uniqid() . '_' . $attachment->getName();
+
+                       
+
                         Storage::disk('local')->put($filePath, $attachment->getContent());
 
                         try {
                             // 3. Traitement du fichier Excel avec Laravel Excel
                             Excel::import(new DataImport, Storage::path($filePath));
-                            
+
                             Log::info("Fichier Excel traité avec succès : {$attachment->getName()} depuis {$senderEmail}");
                         } catch (\Exception $e) {
                             Log::error("Erreur lors du traitement de l'Excel : " . $e->getMessage());

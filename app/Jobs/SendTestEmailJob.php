@@ -20,14 +20,16 @@ class SendTestEmailJob implements ShouldQueue
     public int $tries = 3;
 
     public function __construct(
-        public string $recipientEmail
+        public string $recipientEmail,
+        public string $subject = 'Test Queue Mailpit',
+        public string $body = 'Ceci est un test d\'envoi asynchrone via Excel.'
     ) {}
 
     public function handle(): void
     {
-        Mail::raw('Ceci est un test d\'envoi asynchrone via Queue et Mailpit.', function ($message) {
+        Mail::raw($this->body, function ($message) {
             $message->to($this->recipientEmail)
-                    ->subject('Test Queue Mailpit - ' . now()->toDateTimeString());
+                    ->subject($this->subject);
         });
 
         Log::info("E-mail de test envoyé avec succès à : {$this->recipientEmail}");
