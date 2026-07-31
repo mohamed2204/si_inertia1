@@ -92,6 +92,18 @@ class ProcessIncomingExcelEmails implements ShouldQueue
                             $rawDateValue = $sheet->getCell('B1')->getCalculatedValue();
                             $startDate = $this->parseExcelDate($rawDateValue);
 
+                            // 2. Extraire les vraies dates Carbon des cellules A10 et A16 (grâce à notre helper)
+                            $dateDebut = $this->parseExcelDate($sheet->getCell('A10')->getCalculatedValue());
+                            $dateFin = $this->parseExcelDate($sheet->getCell('A16')->getCalculatedValue());
+
+                            if ($dateDebut && $dateFin) {
+                                // 3. Ecraser la formule par le texte directement formaté par PHP
+                                $textePropre = "DU : " . $dateDebut->format('d/m/Y') . " AU : " . $dateFin->format('d/m/Y');
+
+                                // Remplacez 'B2' par la coordonnée de la cellule qui contient votre formule "DU: ... AU: ..."
+                                $sheet->setCellValue('B2', $textePropre);
+                            }
+
                             if (!$startDate) {
                                 throw new \Exception("Impossible d'extraire une date valide depuis la cellule B1.");
                             }
