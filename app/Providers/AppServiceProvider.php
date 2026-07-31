@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 // <-- Ajoute cet import
+use Illuminate\Support\Facades\Schema; // Add this line
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         App::setLocale('fr');
+
+        Schema::defaultStringLength(191); // Add this line
 
         // 1. Enregistrement manuel des Policies (Crucial si vous n'utilisez pas AuthServiceProvider)
         foreach ($this->policies as $model => $policy) {

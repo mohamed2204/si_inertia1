@@ -23,11 +23,11 @@ class TestJobCommand extends Command
     {
 
 
-        SendTestEmailJob::dispatch(
-            'admin@example.com',
-            'Déclenche manuellement le job de test',
-            'Ceci est un Déclenche manuellement le job de test.'
-        );
+        // SendTestEmailJob::dispatch(
+        //     'admin@example.com',
+        //     'Déclenche manuellement le job de test',
+        //     'Ceci est un Déclenche manuellement le job de test.'
+        // );
         ProcessIncomingExcelEmails::dispatch();
         $this->info('Job envoyé dans la file d\'attente avec succès !');
     }

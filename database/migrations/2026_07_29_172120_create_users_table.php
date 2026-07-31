@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('config_responsables', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->unsignedBigInteger('sous_departement_id');
-            $table->string('libelle');
-            $table->integer('ordre')->default(0);
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
             $table->timestamps();
         });
     }
@@ -25,6 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('config_responsables');
+        Schema::dropIfExists('users');
     }
 };
