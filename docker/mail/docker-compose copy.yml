@@ -10,8 +10,8 @@ services:
       - "3025:25"   # Mappe le port SMTP 25 du conteneur vers 3025 sur votre PC
     environment:
       # Inclus explicitement hostname=0.0.0.0 et définit l'utilisateur
-      - GREENMAIL_OPTS="-Djava.net.preferIPv4Stack=true -Dgreenmail.smtp -Dgreenmail.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=admin@exemple.com:secret123"
-
+      # - GREENMAIL_OPTS=-Djava.net.preferIPv4Stack=true -Dgreenmail.smtp -Dgreenmail.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=admin@exemple.com:secret123
+      - GREENMAIL_OPTS=-Djava.net.preferIPv4Stack=true -Dgreenmail.startup.timeout=10000 -Dgreenmail.setup.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=admin@exemple.com:secret123
   webmail:
     image: roundcube/roundcubemail:latest
     container_name: roundcube
